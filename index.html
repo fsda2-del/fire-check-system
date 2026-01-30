@@ -31,7 +31,9 @@
         .btn-red { background: var(--red); color: white; }
         .btn-green { background: var(--green); color: white; }
         .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
-        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: #4A5568; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #E2E8F0; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; font-size: 0.8rem; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         @media screen and (max-width: 768px) { .main { flex-direction: column; overflow-y: auto; } .sidebar { width: 100%; } }
@@ -69,9 +71,9 @@
             <div id="pin-layer"></div>
         </div>
         <div id="report-section" style="display:none; margin-top:30px;">
-            <h3 style="margin:0 0 10px 0;">รายงานการตรวจเช็ค</h3>
+            <h3 style="margin:0 0 10px 0;">รายงานการตรวจเช็คและรายละเอียดถัง</h3>
             <table id="report-table">
-                <thead><tr><th>รหัสถัง</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่ตรวจ</th></tr></thead>
+                <thead><tr><th>รหัสถัง</th><th>ประเภท</th><th>ขนาด</th><th>สถานะ</th><th>ผู้ตรวจ</th></tr></thead>
                 <tbody id="report-body"></tbody>
             </table>
         </div>
@@ -103,8 +105,6 @@
     window.mode = 'admin';
     let tempX, tempY;
 
-    const checklistItems = ["สภาพตัวถังสมบูรณ์", "มาตรวัดแรงดัน (เข็มสีเขียว)", "สลักและสายรัดพร้อม", "สายฉีดไม่แตกร้าว", "เข้าถึงได้ง่าย/ไม่มีสิ่งกีดขวาง"];
-
     onValue(dbRef, (snapshot) => {
         window.floors = snapshot.val() || [];
         window.refreshUI();
@@ -112,30 +112,47 @@
 
     window.saveToFirebase = () => set(dbRef, window.floors);
 
-    window.processImage = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                let w = img.width, h = img.height;
-                if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                const name = prompt("ระบุชื่อชั้น/โซน:");
-                if (name) {
-                    window.floors.push({ name, img: dataUrl, pins: [] });
-                    window.saveToFirebase();
-                }
-            };
-            img.src = ev.target.result;
-        };
-        reader.readAsDataURL(file);
+    window.onMapClick = (e) => {
+        if (window.mode !== 'admin' || window.currentFloor === null) return;
+        const r = e.target.getBoundingClientRect();
+        tempX = ((e.clientX - r.left) / r.width) * 100;
+        tempY = ((e.clientY - r.top) / r.height) * 100;
+        document.getElementById('modal-body').innerHTML = `
+            <h3>รายละเอียดถังดับเพลิงใหม่</h3>
+            <div class="form-group">
+                <label>รหัสถัง</label>
+                <input type="text" id="p-id" placeholder="ตัวอย่าง: FE-001">
+            </div>
+            <div class="form-group">
+                <label>ประเภทถัง</label>
+                <select id="p-type">
+                    <option value="Dry Chemical">ผงเคมีแห้ง (Dry Chemical)</option>
+                    <option value="CO2">ก๊าซคาร์บอนไดออกไซด์ (CO2)</option>
+                    <option value="Clean Agent">สารสะอาด (Clean Agent)</option>
+                    <option value="Foam">โฟม (Foam)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ขนาด (ปอนด์/กิโลกรัม)</label>
+                <input type="text" id="p-size" placeholder="ตัวอย่าง: 10 lbs หรือ 5 kg">
+            </div>
+            <button class="btn btn-red" onclick="window.savePin()">บันทึกข้อมูลและจุดติดตั้ง</button>
+            <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
+        `;
+        document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.savePin = () => {
+        const id = document.getElementById('p-id').value;
+        const type = document.getElementById('p-type').value;
+        const size = document.getElementById('p-size').value;
+        if (!id) return alert("กรุณาระบุรหัสถัง");
+        
+        if (!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
+        // เพิ่มข้อมูลลงในรายการเดิม (Append)
+        window.floors[window.currentFloor].pins.push({ id, type, size, x: tempX, y: tempY, status: 'pending' });
+        window.saveToFirebase(); 
+        window.closeModal();
     };
 
     window.refreshUI = () => {
@@ -160,28 +177,6 @@
         window.refreshUI();
     };
 
-    window.onMapClick = (e) => {
-        if (window.mode !== 'admin' || window.currentFloor === null) return;
-        const r = e.target.getBoundingClientRect();
-        tempX = ((e.clientX - r.left) / r.width) * 100;
-        tempY = ((e.clientY - r.top) / r.height) * 100;
-        document.getElementById('modal-body').innerHTML = `
-            <h3>เพิ่มจุดติดตั้งใหม่</h3>
-            <input type="text" id="p-id" placeholder="รหัสถัง (เช่น FE-01)" style="width:100%; padding:10px; margin-bottom:10px;">
-            <button class="btn btn-red" onclick="window.savePin()">บันทึกจุด</button>
-            <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
-        `;
-        document.getElementById('modal').style.display = 'flex';
-    };
-
-    window.savePin = () => {
-        const id = document.getElementById('p-id').value;
-        if (!id) return;
-        if (!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
-        window.floors[window.currentFloor].pins.push({ id, x: tempX, y: tempY, status: 'pending' });
-        window.saveToFirebase(); window.closeModal();
-    };
-
     window.renderPins = () => {
         const layer = document.getElementById('pin-layer');
         layer.innerHTML = '';
@@ -191,36 +186,27 @@
             div.className = `pin ${p.status}`;
             div.style.left = p.x + '%'; div.style.top = p.y + '%';
             div.innerHTML = `<i class="fas fa-fire-extinguisher"></i>`;
-            div.onclick = (e) => { e.stopPropagation(); window.openCheckForm(i); };
+            div.onclick = (e) => { e.stopPropagation(); window.openInfo(i); };
             layer.appendChild(div);
         });
     };
 
-    window.openCheckForm = (i) => {
+    window.openInfo = (i) => {
         const p = window.floors[window.currentFloor].pins[i];
         if (window.mode === 'admin') {
-            if (confirm(`ต้องการลบจุด ${p.id}?`)) {
+            if (confirm(`ลบจุดติดตั้งรหัส ${p.id} นี้หรือไม่? ข้อมูลเดิมจะไม่หายถ้าไม่ได้กดยืนยันลบจุดนี้`)) {
                 window.floors[window.currentFloor].pins.splice(i, 1);
                 window.saveToFirebase();
             }
         } else {
             document.getElementById('modal-body').innerHTML = `
-                <h2 style="margin:0;">ตรวจเช็คถัง: ${p.id}</h2>
+                <h3>ข้อมูลถัง: ${p.id}</h3>
+                <p><b>ประเภท:</b> ${p.type || '-'}</p>
+                <p><b>ขนาด:</b> ${p.size || '-'}</p>
                 <hr>
-                <div style="margin: 15px 0;">
-                    ${checklistItems.map((item, idx) => `
-                        <div class="check-item">
-                            <span>${item}</span>
-                            <div style="display:flex; gap:10px;">
-                                <label><input type="radio" name="item${idx}" value="pass" checked> ผ่าน</label>
-                                <label><input type="radio" name="item${idx}" value="fail"> ไม่ผ่าน</label>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <input type="text" id="ins-name" placeholder="ระบุชื่อผู้ตรวจ" style="width:100%; padding:10px; margin-top:10px;">
-                <button class="btn btn-green" onclick="window.submitCheck(${i})">บันทึกผลการตรวจ</button>
-                <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
+                <input type="text" id="ins-name" placeholder="ชื่อผู้ตรวจ" style="width:100%; padding:10px;">
+                <button class="btn btn-green" onclick="window.submitCheck(${i})">ตรวจผ่าน</button>
+                <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
             `;
             document.getElementById('modal').style.display = 'flex';
         }
@@ -228,8 +214,7 @@
 
     window.submitCheck = (i) => {
         const name = document.getElementById('ins-name').value;
-        if (!name) return alert("กรุณาระบุชื่อผู้ตรวจ");
-        
+        if (!name) return alert("ระบุชื่อผู้ตรวจ");
         window.floors[window.currentFloor].pins[i].status = 'done';
         window.floors[window.currentFloor].pins[i].by = name;
         window.floors[window.currentFloor].pins[i].date = new Date().toLocaleString('th-TH');
@@ -255,17 +240,42 @@
         document.getElementById('report-body').innerHTML = pins.map(p => `
             <tr>
                 <td>${p.id}</td>
-                <td style="color:${p.status==='done'?'green':'red'}">${p.status==='done'?'ตรวจแล้ว':'ยังไม่ได้ตรวจ'}</td>
+                <td>${p.type || '-'}</td>
+                <td>${p.size || '-'}</td>
+                <td style="color:${p.status==='done'?'green':'red'}">${p.status==='done'?'ตรวจแล้ว':'ค้าง'}</td>
                 <td>${p.by || '-'}</td>
-                <td>${p.date || '-'}</td>
             </tr>
         `).join('');
     };
 
-    window.delFloor = (e, i) => { e.stopPropagation(); if (confirm("ลบแปลนนี้และข้อมูลทั้งหมดในชั้นนี้?")) { window.floors.splice(i, 1); window.saveToFirebase(); } };
     window.setMode = (m) => { window.mode = m; document.getElementById('mode-badge').innerText = m.toUpperCase(); window.refreshUI(); };
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
+    window.processImage = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                let w = img.width, h = img.height;
+                if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                const name = prompt("ระบุชื่อชั้น/โซนใหม่:");
+                if (name) {
+                    window.floors.push({ name, img: dataUrl, pins: [] });
+                    window.saveToFirebase();
+                }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+    window.delFloor = (e, i) => { e.stopPropagation(); if (confirm("ระวัง! ข้อมูลในชั้นนี้จะหายทั้งหมด ยืนยันลบหรือไม่?")) { window.floors.splice(i, 1); window.saveToFirebase(); } };
 </script>
-
 </body>
 </html>
