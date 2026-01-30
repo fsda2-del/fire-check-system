@@ -11,27 +11,30 @@
         * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; }
         body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
         header { background: var(--red); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 100; }
-        .dashboard { background: white; padding: 15px 25px; display: flex; gap: 40px; border-bottom: 1px solid #E2E8F0; }
+        .dashboard { background: white; padding: 15px 25px; display: flex; gap: 40px; border-bottom: 1px solid #E2E8F0; flex-wrap: wrap; }
         .stat-box { display: flex; flex-direction: column; }
         .stat-num { font-size: 1.6rem; font-weight: 800; line-height: 1; }
         .stat-label { font-size: 0.75rem; color: #718096; font-weight: 600; }
         .main { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 300px; background: var(--dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .viewer { flex: 1; position: relative; overflow: auto; background: #E2E8F0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .viewer { flex: 1; position: relative; overflow: auto; background: #E2E8F0; padding: 20px; display: flex; flex-direction: column; }
         .floor-card { background: #2D3748; padding: 15px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; position: relative; margin-bottom: 10px; }
         .floor-card.active { border-color: var(--red); background: #4A5568; }
-        .map-wrapper { position: relative; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.2); line-height: 0; }
+        .map-wrapper { position: relative; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.2); line-height: 0; margin: 0 auto; }
         #layout-img { max-width: 100%; height: auto; cursor: crosshair; }
         .pin { position: absolute; width: 32px; height: 32px; background: var(--red); color: white; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; }
         .pin i { transform: rotate(45deg); font-size: 12px; }
         .pin.done { background: var(--green); }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 15px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; }
         .btn-red { background: var(--red); color: white; }
         .btn-green { background: var(--green); color: white; }
         .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
-        @media screen and (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; } }
+        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; font-size: 0.8rem; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        @media screen and (max-width: 768px) { .main { flex-direction: column; overflow-y: auto; } .sidebar { width: 100%; } }
     </style>
 </head>
 <body>
@@ -44,6 +47,7 @@
 <div class="dashboard">
     <div class="stat-box"><span class="stat-num" id="s-total" style="color: var(--blue);">0</span><span class="stat-label">จุดติดตั้ง</span></div>
     <div class="stat-box"><span class="stat-num" id="s-done" style="color: var(--green);">0</span><span class="stat-label">ตรวจแล้ว</span></div>
+    <div class="stat-box"><span class="stat-num" id="s-pending" style="color: #E53E3E;">0</span><span class="stat-label">ค้างตรวจ</span></div>
 </div>
 
 <div class="main">
@@ -58,11 +62,18 @@
     </div>
     <div class="viewer">
         <div id="empty-hint" style="color:#A0AEC0; text-align:center; margin-top:50px;">
-            <i class="fas fa-map-marked-alt fa-3x"></i><p>ยังไม่มีข้อมูลแปลนชั้น</p>
+            <i class="fas fa-map-marked-alt fa-3x"></i><p>กรุณาเลือกหรือเพิ่มแปลนชั้นเพื่อเริ่มใช้งาน</p>
         </div>
         <div id="map-area" class="map-wrapper" style="display:none;">
             <img id="layout-img" onclick="window.onMapClick(event)">
             <div id="pin-layer"></div>
+        </div>
+        <div id="report-section" style="display:none; margin-top:30px;">
+            <h3 style="margin:0 0 10px 0;">รายงานการตรวจเช็ค</h3>
+            <table id="report-table">
+                <thead><tr><th>รหัสถัง</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่ตรวจ</th></tr></thead>
+                <tbody id="report-body"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -73,7 +84,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-    // ใช้รหัสจากรูปภาพที่คุณส่งมา
     const firebaseConfig = {
         apiKey: "AIzaSyCxRj6vnFpyo5xkzzZtu-IoSZGwlKzCmo8",
         authDomain: "fire-extinguisher-check-system.firebaseapp.com",
@@ -93,7 +103,8 @@
     window.mode = 'admin';
     let tempX, tempY;
 
-    // โหลดข้อมูล
+    const checklistItems = ["สภาพตัวถังสมบูรณ์", "มาตรวัดแรงดัน (เข็มสีเขียว)", "สลักและสายรัดพร้อม", "สายฉีดไม่แตกร้าว", "เข้าถึงได้ง่าย/ไม่มีสิ่งกีดขวาง"];
+
     onValue(dbRef, (snapshot) => {
         window.floors = snapshot.val() || [];
         window.refreshUI();
@@ -109,14 +120,14 @@
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600;
+                const MAX_WIDTH = 800;
                 let w = img.width, h = img.height;
                 if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
                 canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
-                const name = prompt("ระบุชื่อชั้น (เช่น ชั้น 1):");
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                const name = prompt("ระบุชื่อชั้น/โซน:");
                 if (name) {
                     window.floors.push({ name, img: dataUrl, pins: [] });
                     window.saveToFirebase();
@@ -137,12 +148,14 @@
         `).join('');
         window.updateStats();
         window.renderPins();
+        window.buildReport();
     };
 
     window.selectFloor = (i) => {
         window.currentFloor = i;
         document.getElementById('empty-hint').style.display = 'none';
         document.getElementById('map-area').style.display = 'block';
+        document.getElementById('report-section').style.display = 'block';
         document.getElementById('layout-img').src = window.floors[i].img;
         window.refreshUI();
     };
@@ -153,8 +166,8 @@
         tempX = ((e.clientX - r.left) / r.width) * 100;
         tempY = ((e.clientY - r.top) / r.height) * 100;
         document.getElementById('modal-body').innerHTML = `
-            <h3>เพิ่มจุดติดตั้ง</h3>
-            <input type="text" id="p-id" placeholder="รหัสถัง (เช่น FE-01)" style="width:100%; padding:10px;">
+            <h3>เพิ่มจุดติดตั้งใหม่</h3>
+            <input type="text" id="p-id" placeholder="รหัสถัง (เช่น FE-01)" style="width:100%; padding:10px; margin-bottom:10px;">
             <button class="btn btn-red" onclick="window.savePin()">บันทึกจุด</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
@@ -178,12 +191,12 @@
             div.className = `pin ${p.status}`;
             div.style.left = p.x + '%'; div.style.top = p.y + '%';
             div.innerHTML = `<i class="fas fa-fire-extinguisher"></i>`;
-            div.onclick = (e) => { e.stopPropagation(); window.checkPin(i); };
+            div.onclick = (e) => { e.stopPropagation(); window.openCheckForm(i); };
             layer.appendChild(div);
         });
     };
 
-    window.checkPin = (i) => {
+    window.openCheckForm = (i) => {
         const p = window.floors[window.currentFloor].pins[i];
         if (window.mode === 'admin') {
             if (confirm(`ต้องการลบจุด ${p.id}?`)) {
@@ -192,17 +205,34 @@
             }
         } else {
             document.getElementById('modal-body').innerHTML = `
-                <h3>ตรวจเช็คถัง: ${p.id}</h3>
-                <p>สถานะ: ${p.status === 'done' ? 'ตรวจแล้ว' : 'ยังไม่ได้ตรวจ'}</p>
-                <button class="btn btn-green" onclick="window.confirmDone(${i})">ทำเครื่องหมายว่าตรวจแล้ว</button>
-                <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
+                <h2 style="margin:0;">ตรวจเช็คถัง: ${p.id}</h2>
+                <hr>
+                <div style="margin: 15px 0;">
+                    ${checklistItems.map((item, idx) => `
+                        <div class="check-item">
+                            <span>${item}</span>
+                            <div style="display:flex; gap:10px;">
+                                <label><input type="radio" name="item${idx}" value="pass" checked> ผ่าน</label>
+                                <label><input type="radio" name="item${idx}" value="fail"> ไม่ผ่าน</label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <input type="text" id="ins-name" placeholder="ระบุชื่อผู้ตรวจ" style="width:100%; padding:10px; margin-top:10px;">
+                <button class="btn btn-green" onclick="window.submitCheck(${i})">บันทึกผลการตรวจ</button>
+                <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
             `;
             document.getElementById('modal').style.display = 'flex';
         }
     };
 
-    window.confirmDone = (i) => {
+    window.submitCheck = (i) => {
+        const name = document.getElementById('ins-name').value;
+        if (!name) return alert("กรุณาระบุชื่อผู้ตรวจ");
+        
         window.floors[window.currentFloor].pins[i].status = 'done';
+        window.floors[window.currentFloor].pins[i].by = name;
+        window.floors[window.currentFloor].pins[i].date = new Date().toLocaleString('th-TH');
         window.saveToFirebase(); window.closeModal();
     };
 
@@ -216,9 +246,23 @@
         });
         document.getElementById('s-total').innerText = total;
         document.getElementById('s-done').innerText = done;
+        document.getElementById('s-pending').innerText = total - done;
     };
 
-    window.delFloor = (e, i) => { e.stopPropagation(); if (confirm("ลบแปลนนี้?")) { window.floors.splice(i, 1); window.saveToFirebase(); } };
+    window.buildReport = () => {
+        if (window.currentFloor === null) return;
+        const pins = window.floors[window.currentFloor].pins || [];
+        document.getElementById('report-body').innerHTML = pins.map(p => `
+            <tr>
+                <td>${p.id}</td>
+                <td style="color:${p.status==='done'?'green':'red'}">${p.status==='done'?'ตรวจแล้ว':'ยังไม่ได้ตรวจ'}</td>
+                <td>${p.by || '-'}</td>
+                <td>${p.date || '-'}</td>
+            </tr>
+        `).join('');
+    };
+
+    window.delFloor = (e, i) => { e.stopPropagation(); if (confirm("ลบแปลนนี้และข้อมูลทั้งหมดในชั้นนี้?")) { window.floors.splice(i, 1); window.saveToFirebase(); } };
     window.setMode = (m) => { window.mode = m; document.getElementById('mode-badge').innerText = m.toUpperCase(); window.refreshUI(); };
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
 </script>
