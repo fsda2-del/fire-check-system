@@ -10,52 +10,38 @@
         :root { --red: #D32F2F; --green: #388E3C; --orange: #F57C00; --blue: #1976D2; --dark: #1A202C; --bg: #F7FAFC; }
         * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; }
         body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
-        
         header { background: var(--red); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1001; }
-        .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-
+        .menu-toggle { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
         .dashboard { background: white; padding: 10px 20px; display: flex; gap: 20px; border-bottom: 1px solid #E2E8F0; z-index: 1000; overflow-x: auto; flex-shrink: 0; }
         .stat-box { display: flex; flex-direction: column; min-width: 80px; }
         .stat-num { font-size: 1.2rem; font-weight: 800; }
         .stat-label { font-size: 0.65rem; color: #718096; font-weight: 600; }
-
         .main { display: flex; flex: 1; position: relative; overflow: hidden; }
-        
-        .sidebar { 
-            position: absolute; left: 0; top: 0; bottom: 0; width: 280px;
-            background: var(--dark); color: white; padding: 20px; 
-            display: flex; flex-direction: column; gap: 15px; z-index: 1000;
-            transition: transform 0.3s ease; transform: translateX(-100%);
-        }
+        .sidebar { position: absolute; left: 0; top: 0; bottom: 0; width: 280px; background: var(--dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 1000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
         .sidebar-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; }
         .sidebar-overlay.open { display: block; }
-
         .viewer { flex: 1; overflow: auto; padding: 20px; background: #cbd5e061; position: relative; display: flex; justify-content: center; }
-        
         .floor-card { background: #2D3748; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; margin-bottom: 8px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
         .floor-card.active { border-color: var(--red); background: #4A5568; }
-
         .map-wrapper { position: relative; background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); line-height: 0; display: inline-block; height: fit-content; }
         #layout-img { max-width: 1000px; height: auto; cursor: crosshair; }
-
         .pin { position: absolute; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; }
         .pin i { transform: rotate(45deg); font-size: 10px; color: white; }
         .pin.pending { background: #A0AEC0; }
         .pin.done { background: var(--green); }
         .pin.repair { background: var(--orange); }
-
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 15px; }
         .modal-content { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; color: #333; }
-        
         .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 0.85rem; }
         .btn-red { background: var(--red); color: white; }
         .btn-green { background: var(--green); color: white; }
         .btn-blue { background: var(--blue); color: white; }
         .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
-
-        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        .check-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+        .check-options { display: flex; gap: 15px; margin-top: 5px; }
+        .opt { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
     </style>
 </head>
@@ -81,17 +67,13 @@
     <div class="sidebar" id="sidebar">
         <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มรูปแปลนชั้น</button>
         <input type="file" id="f-up" hidden accept="image/*" onchange="window.processImage(event)">
-        
         <div id="floor-list" style="flex:1; overflow-y:auto; margin-top:5px;"></div>
-        
         <button class="btn btn-blue" onclick="window.showReportModal()"><i class="fas fa-file-alt"></i> ดูรายงานสรุป (Report)</button>
-        
         <div style="display:flex; gap:5px;">
             <button onclick="window.setMode('admin')" class="btn" style="background:#4A5568; color:white;">ADMIN</button>
             <button onclick="window.setMode('user')" class="btn btn-green">INSPECTOR</button>
         </div>
     </div>
-    
     <div class="viewer">
         <div id="empty-hint" style="text-align:center; margin-top:50px; color:#A0AEC0; position:absolute;">
             <i class="fas fa-map-marked-alt fa-3x"></i><p>เลือกชั้นจากเมนูเพื่อเริ่ม</p>
@@ -171,13 +153,12 @@
         window.refreshUI();
     };
 
-    // --- ฟีเจอร์ Admin แก้ไข/ลบ ชั้น ---
     window.manageFloor = (e, i) => {
         e.stopPropagation();
         document.getElementById('modal-body').innerHTML = `
             <h3>จัดการชั้น: ${window.floors[i].name}</h3>
             <button class="btn btn-blue" onclick="window.renameFloor(${i})">เปลี่ยนชื่อชั้น</button>
-            <button class="btn btn-red" onclick="window.delFloor(${i})">ลบชั้นนี้ (ลบรูปและถัง)</button>
+            <button class="btn btn-red" onclick="window.delFloor(${i})">ลบชั้นนี้</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
         document.getElementById('modal').style.display = 'flex';
@@ -189,11 +170,9 @@
     };
 
     window.delFloor = (i) => {
-        if(confirm("คุณแน่ใจหรือไม่ว่าต้องการลบชั้นนี้? ข้อมูลจุดติดตั้งทั้งหมดจะหายไปด้วย")) {
-            window.floors.splice(i, 1);
-            window.currentFloor = null;
-            window.saveToFirebase();
-            window.closeModal();
+        if(confirm("ลบชั้นนี้และข้อมูลทั้งหมด?")) {
+            window.floors.splice(i, 1); window.currentFloor = null;
+            window.saveToFirebase(); window.closeModal();
             document.getElementById('map-area').style.display = 'none';
             document.getElementById('empty-hint').style.display = 'block';
         }
@@ -206,8 +185,15 @@
         const y = ((e.clientY - r.top) / r.height) * 100;
         document.getElementById('modal-body').innerHTML = `
             <h3>เพิ่มถังใหม่</h3>
-            <input type="text" id="p-id" placeholder="รหัสถัง (ID)" class="btn btn-outline" style="text-align:left; color:black;">
-            <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึกจุดติดตั้ง</button>
+            <label style="font-size:0.8rem">รหัสถัง (ID):</label>
+            <input type="text" id="p-id" placeholder="ระบุรหัส" class="btn btn-outline" style="text-align:left; color:black;">
+            <label style="font-size:0.8rem">ประเภทถัง:</label>
+            <select id="p-type" class="btn btn-outline">
+                <option>ผงเคมีแห้ง</option><option>CO2</option><option>Clean Agent</option><option>โฟม</option>
+            </select>
+            <label style="font-size:0.8rem">วันหมดอายุ:</label>
+            <input type="date" id="p-exp" class="btn btn-outline">
+            <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึก</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
         document.getElementById('modal').style.display = 'flex';
@@ -215,9 +201,11 @@
 
     window.addPin = (x, y) => {
         const id = document.getElementById('p-id').value;
+        const type = document.getElementById('p-type').value;
+        const exp = document.getElementById('p-exp').value;
         if(!id) return alert("กรุณาระบุ ID");
         if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
-        window.floors[window.currentFloor].pins.push({ id, x, y, status: 'pending' });
+        window.floors[window.currentFloor].pins.push({ id, type, exp, x, y, status: 'pending' });
         window.saveToFirebase(); window.closeModal();
     };
 
@@ -237,18 +225,23 @@
     window.openCheck = (i) => {
         const p = window.floors[window.currentFloor].pins[i];
         if(window.mode === 'admin') {
-            if(confirm(`ลบจุดติดตั้งถัง ${p.id}?`)) { window.floors[window.currentFloor].pins.splice(i, 1); window.saveToFirebase(); }
+            if(confirm(`ลบถัง ${p.id}?`)) { window.floors[window.currentFloor].pins.splice(i, 1); window.saveToFirebase(); }
         } else {
             document.getElementById('modal-body').innerHTML = `
-                <h3>ตรวจสอบถัง: ${p.id}</h3>
+                <h3>ตรวจถัง: ${p.id} (${p.type})</h3>
+                <p style="font-size:0.75rem; color:red; margin-top:-10px;">วันหมดอายุ: ${p.exp || '-'}</p>
+                <hr>
                 ${checklistItems.map((item, idx) => `
                     <div class="check-item">
-                        <span>${item}</span>
-                        <input type="checkbox" id="c${idx}" checked style="transform:scale(1.2)">
+                        <span>${idx+1}. ${item}</span>
+                        <div class="check-options">
+                            <label class="opt"><input type="radio" name="r${idx}" value="yes" checked> ใช่</label>
+                            <label class="opt"><input type="radio" name="r${idx}" value="no"> ไม่ใช่</label>
+                        </div>
                     </div>
                 `).join('')}
                 <input type="text" id="ins-name" placeholder="ชื่อผู้ตรวจ" class="btn btn-outline" style="text-align:left; color:black; margin-top:10px;">
-                <button class="btn btn-green" onclick="window.submitCheck(${i})">บันทึกผลการตรวจ</button>
+                <button class="btn btn-green" onclick="window.submitCheck(${i})">ส่งผลการตรวจ</button>
                 <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
             `;
             document.getElementById('modal').style.display = 'flex';
@@ -258,29 +251,33 @@
     window.submitCheck = (i) => {
         const name = document.getElementById('ins-name').value;
         if(!name) return alert("กรุณาใส่ชื่อผู้ตรวจ");
-        let hasFail = false;
-        checklistItems.forEach((_, idx) => { if(!document.getElementById(`c${idx}`).checked) hasFail = true; });
+        
+        let isFail = false;
+        checklistItems.forEach((_, idx) => {
+            const val = document.querySelector(`input[name="r${idx}"]:checked`).value;
+            if(val === 'no') isFail = true;
+        });
         
         const p = window.floors[window.currentFloor].pins[i];
-        p.status = hasFail ? 'repair' : 'done';
+        p.status = isFail ? 'repair' : 'done';
         p.by = name;
         p.date = new Date().toLocaleString('th-TH');
         window.saveToFirebase(); window.closeModal();
     };
 
-    // --- ฟีเจอร์ Report ใน Sidebar ---
     window.showReportModal = () => {
-        if(window.currentFloor === null) return alert("กรุณาเลือกชั้นก่อนดูรายงาน");
+        if(window.currentFloor === null) return alert("เลือกชั้นก่อน");
         const pins = window.floors[window.currentFloor].pins || [];
         document.getElementById('modal-body').innerHTML = `
             <h3>รายงาน: ${window.floors[window.currentFloor].name}</h3>
             <div style="overflow-x:auto">
                 <table>
-                    <thead><tr><th>ID</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่</th></tr></thead>
+                    <thead><tr><th>ID</th><th>ประเภท</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่</th></tr></thead>
                     <tbody>
                         ${pins.map(p => `
                             <tr>
                                 <td>${p.id}</td>
+                                <td>${p.type || '-'}</td>
                                 <td style="color:${p.status==='done'?'green':'orange'}">${p.status==='done'?'ปกติ':'ซ่อม'}</td>
                                 <td>${p.by || '-'}</td>
                                 <td>${p.date || '-'}</td>
@@ -289,7 +286,7 @@
                     </tbody>
                 </table>
             </div>
-            <button class="btn btn-outline" onclick="window.closeModal()" style="margin-top:15px">ปิดหน้าต่าง</button>
+            <button class="btn btn-outline" onclick="window.closeModal()" style="margin-top:15px">ปิด</button>
         `;
         document.getElementById('modal').style.display = 'flex';
     };
@@ -307,7 +304,7 @@
                 if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
                 canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                const name = prompt("ระบุชื่อชั้น:");
+                const name = prompt("ชื่อชั้น:");
                 if (name) { window.floors.push({ name, img: canvas.toDataURL('image/jpeg', 0.7), pins: [] }); window.saveToFirebase(); }
             };
             img.src = ev.target.result;
@@ -317,6 +314,7 @@
 
     window.setMode = (m) => { window.mode = m; document.getElementById('mode-badge').innerText = m.toUpperCase(); window.refreshUI(); };
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
+    window.toggleMenu(); // Start with menu open for ease of use
 </script>
 </body>
 </html>
