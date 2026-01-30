@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบตรวจเช็คและแจ้งซ่อมถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
+    <title>ระบบตรวจเช็คถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -24,34 +24,31 @@
         #layout-img { max-width: 100%; height: auto; cursor: crosshair; }
         .pin { position: absolute; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
         .pin i { transform: rotate(45deg); font-size: 12px; color: white; }
-        .pin.pending { background: #CBD5E0; } /* ค้างตรวจ - เทา */
-        .pin.done { background: var(--green); } /* ปกติ - เขียว */
-        .pin.repair { background: var(--orange); } /* แจ้งซ่อม - ส้ม */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
-        .modal-content { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 15px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; font-size: 0.9rem; }
+        .pin.pending { background: #CBD5E0; }
+        .pin.done { background: var(--green); }
+        .pin.repair { background: var(--orange); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; }
         .btn-red { background: var(--red); color: white; }
         .btn-green { background: var(--green); color: white; }
-        .btn-orange { background: var(--orange); color: white; }
         .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 5px; font-weight: 600; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 0.9rem; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; font-size: 0.75rem; border-radius: 8px; overflow: hidden; }
+        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; font-size: 0.75rem; }
         th, td { border: 1px solid #E2E8F0; padding: 10px; text-align: left; }
         th { background: #EDF2F7; }
-        @media screen and (max-width: 768px) { .main { flex-direction: column; overflow-y: auto; } .sidebar { width: 100%; } }
+        @media screen and (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; } }
     </style>
 </head>
 <body>
 
 <header>
     <div style="font-weight: 800;"><i class="fas fa-fire-extinguisher"></i> FIRE CHECK - รพ.เอกชล อ่างศิลา</div>
-    <div id="mode-badge" style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-weight: 600;">ADMIN MODE</div>
+    <div id="mode-badge" style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px;">ADMIN MODE</div>
 </header>
 
 <div class="dashboard">
-    <div class="stat-box"><span class="stat-num" id="s-total" style="color: var(--blue);">0</span><span class="stat-label">ทั้งหมด</span></div>
+    <div class="stat-box"><span class="stat-num" id="s-total" style="color: var(--blue);">0</span><span class="stat-label">จุดติดตั้ง</span></div>
     <div class="stat-box"><span class="stat-num" id="s-done" style="color: var(--green);">0</span><span class="stat-label">ปกติ</span></div>
     <div class="stat-box"><span class="stat-num" id="s-repair" style="color: var(--orange);">0</span><span class="stat-label">ส่งซ่อม</span></div>
     <div class="stat-box"><span class="stat-num" id="s-pending" style="color: #A0AEC0;">0</span><span class="stat-label">ค้างตรวจ</span></div>
@@ -67,9 +64,9 @@
             <button onclick="window.setMode('user')" class="btn btn-green">INSPECTOR</button>
         </div>
     </div>
-    <div class="viewer" id="viewer-area">
+    <div class="viewer">
         <div id="empty-hint" style="text-align:center; margin-top:100px; color:#718096;">
-            <i class="fas fa-map-marked-alt fa-4x" style="margin-bottom:15px; opacity:0.3;"></i>
+            <i class="fas fa-map-marked-alt fa-4x" style="opacity:0.2;"></i>
             <p>กรุณาเลือกชั้นเพื่อดูข้อมูล</p>
         </div>
         <div id="map-area" style="display:none; text-align:center;">
@@ -78,9 +75,9 @@
                 <div id="pin-layer"></div>
             </div>
             <div id="report-section" style="text-align:left; margin-top:30px;">
-                <h3><i class="fas fa-list-alt"></i> รายละเอียดถังดับเพลิงในชั้นนี้</h3>
+                <h3><i class="fas fa-file-alt"></i> รายงานสรุปผล</h3>
                 <table id="report-table">
-                    <thead><tr><th>ID</th><th>ประเภท</th><th>ขนาด</th><th>สถานะ</th><th>วันที่ตรวจ/แจ้ง</th><th>หมายเหตุ</th></tr></thead>
+                    <thead><tr><th>ID</th><th>ประเภท</th><th>ขนาด</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่</th><th>หมายเหตุ</th></tr></thead>
                     <tbody id="report-body"></tbody>
                 </table>
             </div>
@@ -110,7 +107,7 @@
     window.floors = [];
     window.currentFloor = null;
     window.mode = 'admin';
-    let tempX, tempY;
+    const checklistItems = ["ตัวถังสมบูรณ์", "เกจวัดสีเขียว", "สลัก/สายรัดปกติ", "สายฉีดไม่แตก", "ไม่มีสิ่งกีดขวาง"];
 
     onValue(dbRef, (snapshot) => {
         window.floors = snapshot.val() || [];
@@ -122,111 +119,81 @@
     window.onMapClick = (e) => {
         if (window.mode !== 'admin' || window.currentFloor === null) return;
         const r = e.target.getBoundingClientRect();
-        tempX = ((e.clientX - r.left) / r.width) * 100;
-        tempY = ((e.clientY - r.top) / r.height) * 100;
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
         document.getElementById('modal-body').innerHTML = `
-            <h3 style="margin-top:0;">เพิ่มถังดับเพลิงใหม่</h3>
-            <div class="form-group"><label>รหัสถัง (ID)</label><input type="text" id="p-id" placeholder="FE-001"></div>
-            <div class="form-group">
-                <label>ประเภท</label>
-                <select id="p-type">
-                    <option>Dry Chemical (ผงเคมีแห้ง)</option>
-                    <option>CO2</option>
-                    <option>Clean Agent</option>
-                </select>
-            </div>
-            <div class="form-group"><label>ขนาด</label><input type="text" id="p-size" placeholder="เช่น 10 lbs"></div>
-            <button class="btn btn-red" onclick="window.savePin()">บันทึกจุดติดตั้ง</button>
+            <h3 style="margin:0 0 15px 0;">ข้อมูลถังใหม่</h3>
+            <input type="text" id="p-id" placeholder="รหัสถัง (ID)" style="width:100%; padding:10px; margin-bottom:10px;">
+            <select id="p-type" style="width:100%; padding:10px; margin-bottom:10px;">
+                <option>Dry Chemical (ผงเคมี)</option><option>CO2</option><option>Clean Agent</option>
+            </select>
+            <input type="text" id="p-size" placeholder="ขนาด (เช่น 10 lbs)" style="width:100%; padding:10px; margin-bottom:10px;">
+            <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึกจุดติดตั้ง</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
         document.getElementById('modal').style.display = 'flex';
     };
 
-    window.savePin = () => {
+    window.addPin = (x, y) => {
         const id = document.getElementById('p-id').value;
-        const type = document.getElementById('p-type').value;
-        const size = document.getElementById('p-size').value;
-        if (!id) return alert("กรุณาระบุรหัสถัง");
-        if (!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
-        window.floors[window.currentFloor].pins.push({ id, type, size, x: tempX, y: tempY, status: 'pending', note: '' });
+        if(!id) return alert("กรุณาระบุรหัส");
+        if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
+        window.floors[window.currentFloor].pins.push({ id, type: document.getElementById('p-type').value, size: document.getElementById('p-size').value, x, y, status: 'pending' });
         window.saveToFirebase(); window.closeModal();
     };
 
-    window.openInfo = (i) => {
+    window.openCheckForm = (i) => {
         const p = window.floors[window.currentFloor].pins[i];
-        if (window.mode === 'admin') {
-            if (confirm(`ลบรหัส ${p.id} หรือไม่?`)) { window.floors[window.currentFloor].pins.splice(i, 1); window.saveToFirebase(); }
+        if(window.mode === 'admin') {
+            if(confirm(`ลบรหัส ${p.id}?`)) { window.floors[window.currentFloor].pins.splice(i, 1); window.saveToFirebase(); }
         } else {
             document.getElementById('modal-body').innerHTML = `
-                <h3 style="margin-top:0;">รหัสถัง: ${p.id}</h3>
-                <p style="font-size:0.9rem;">ประเภท: ${p.type} | ขนาด: ${p.size}</p>
-                <hr>
-                <div class="form-group">
-                    <label>ผลการตรวจ</label>
-                    <button class="btn btn-green" onclick="window.updateStatus(${i}, 'done')">ตรวจแล้ว (ปกติ)</button>
-                    <button class="btn btn-orange" onclick="window.showRepairForm(${i})">แจ้งซ่อม / ไม่ปกติ</button>
-                </div>
+                <h3 style="margin:0;">ตรวจสอบถัง: ${p.id}</h3>
+                <p style="font-size:0.8rem; color:#666;">ประเภท: ${p.type} | ขนาด: ${p.size}</p><hr>
+                ${checklistItems.map((item, idx) => `
+                    <div class="check-item">
+                        <span>${item}</span>
+                        <div style="display:flex; gap:10px;">
+                            <label><input type="radio" name="c${idx}" value="pass" checked> ผ่าน</label>
+                            <label><input type="radio" name="c${idx}" value="fail"> เสีย</label>
+                        </div>
+                    </div>
+                `).join('')}
+                <input type="text" id="ins-name" placeholder="ชื่อผู้ตรวจ" style="width:100%; padding:10px; margin-top:10px;">
+                <textarea id="ins-note" placeholder="หมายเหตุเพิ่มเติม" style="width:100%; padding:10px; margin-top:10px;"></textarea>
+                <button class="btn btn-green" onclick="window.submitCheck(${i})">บันทึกผลการตรวจ</button>
                 <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
             `;
             document.getElementById('modal').style.display = 'flex';
         }
     };
 
-    window.showRepairForm = (i) => {
+    window.submitCheck = (i) => {
+        const name = document.getElementById('ins-name').value;
+        if(!name) return alert("กรุณาใส่ชื่อ");
+        let hasFail = false;
+        checklistItems.forEach((_, idx) => { if(document.querySelector(`input[name="c${idx}"]:checked`).value === 'fail') hasFail = true; });
+        
         const p = window.floors[window.currentFloor].pins[i];
-        document.getElementById('modal-body').innerHTML = `
-            <h3>แจ้งซ่อมถัง: ${p.id}</h3>
-            <div class="form-group">
-                <label>อาการที่พบ / หมายเหตุ</label>
-                <textarea id="repair-note" rows="3" placeholder="ระบุอาการเสีย เช่น เข็มตก, สายแตก, ถังบุบ..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>ชื่อผู้แจ้ง</label>
-                <input type="text" id="reporter-name" placeholder="ชื่อของคุณ">
-            </div>
-            <button class="btn btn-orange" onclick="window.submitRepair(${i})">ยืนยันการแจ้งซ่อม</button>
-            <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
-        `;
-    };
-
-    window.submitRepair = (i) => {
-        const note = document.getElementById('repair-note').value;
-        const name = document.getElementById('reporter-name').value;
-        if (!note || !name) return alert("กรุณากรอกข้อมูลให้ครบ");
-        window.floors[window.currentFloor].pins[i].status = 'repair';
-        window.floors[window.currentFloor].pins[i].note = note;
-        window.floors[window.currentFloor].pins[i].by = name;
-        window.floors[window.currentFloor].pins[i].date = new Date().toLocaleString('th-TH');
-        window.saveToFirebase(); window.closeModal();
-    };
-
-    window.updateStatus = (i, status) => {
-        const name = prompt("ระบุชื่อผู้ตรวจ:");
-        if (!name) return;
-        window.floors[window.currentFloor].pins[i].status = status;
-        window.floors[window.currentFloor].pins[i].by = name;
-        window.floors[window.currentFloor].pins[i].note = 'ปกติ';
-        window.floors[window.currentFloor].pins[i].date = new Date().toLocaleString('th-TH');
+        p.status = hasFail ? 'repair' : 'done';
+        p.by = name;
+        p.date = new Date().toLocaleString('th-TH');
+        p.note = document.getElementById('ins-note').value || (hasFail ? "พบความผิดปกติ" : "ปกติ");
         window.saveToFirebase(); window.closeModal();
     };
 
     window.refreshUI = () => {
         document.getElementById('floor-list').innerHTML = window.floors.map((f, i) => `
             <div class="floor-card ${i===window.currentFloor?'active':''}" onclick="window.selectFloor(${i})">
-                <strong><i class="fas fa-layer-group"></i> ${f.name}</strong>
+                <strong>${f.name}</strong>
                 ${window.mode==='admin' ? `<span onclick="window.delFloor(event, ${i})" style="float:right; opacity:0.5;">ลบ</span>`:''}
             </div>
         `).join('');
         
         let t = 0, d = 0, r = 0, p = 0;
-        window.floors.forEach(f => {
-            (f.pins || []).forEach(pin => {
-                t++;
-                if (pin.status === 'done') d++;
-                else if (pin.status === 'repair') r++;
-                else p++;
-            });
-        });
+        window.floors.forEach(f => { (f.pins || []).forEach(pin => {
+            t++; if(pin.status==='done') d++; else if(pin.status==='repair') r++; else p++;
+        });});
         document.getElementById('s-total').innerText = t;
         document.getElementById('s-done').innerText = d;
         document.getElementById('s-repair').innerText = r;
@@ -252,18 +219,18 @@
             div.className = `pin ${p.status}`;
             div.style.left = p.x + '%'; div.style.top = p.y + '%';
             div.innerHTML = `<i class="fas fa-fire-extinguisher"></i>`;
-            div.onclick = (e) => { e.stopPropagation(); window.openInfo(i); };
+            div.onclick = (e) => { e.stopPropagation(); window.openCheckForm(i); };
             layer.appendChild(div);
         });
     };
 
     window.buildReport = () => {
         if (window.currentFloor === null) return;
-        const pins = window.floors[window.currentFloor].pins || [];
-        document.getElementById('report-body').innerHTML = pins.map(p => {
-            let statusText = p.status === 'done' ? '✅ ปกติ' : (p.status === 'repair' ? '⚠️ แจ้งซ่อม' : '⏳ ค้างตรวจ');
-            return `<tr><td>${p.id}</td><td>${p.type}</td><td>${p.size}</td><td>${statusText}</td><td>${p.date || '-'}</td><td>${p.note || '-'} (โดย ${p.by || '-'})</td></tr>`;
-        }).join('');
+        document.getElementById('report-body').innerHTML = (window.floors[window.currentFloor].pins || []).map(p => `
+            <tr><td>${p.id}</td><td>${p.type}</td><td>${p.size}</td>
+            <td style="color:${p.status==='done'?'green':(p.status==='repair'?'orange':'gray')}">${p.status==='done'?'ปกติ':(p.status==='repair'?'แจ้งซ่อม':'ค้าง')}</td>
+            <td>${p.by||'-'}</td><td>${p.date||'-'}</td><td>${p.note||'-'}</td></tr>
+        `).join('');
     };
 
     window.processImage = (e) => {
@@ -290,7 +257,7 @@
 
     window.setMode = (m) => { window.mode = m; document.getElementById('mode-badge').innerText = m.toUpperCase() + " MODE"; window.refreshUI(); };
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
-    window.delFloor = (e, i) => { e.stopPropagation(); if (confirm("ยืนยันการลบชั้นนี้?")) { window.floors.splice(i, 1); window.saveToFirebase(); window.currentFloor = null; } };
+    window.delFloor = (e, i) => { e.stopPropagation(); if (confirm("ลบชั้นนี้?")) { window.floors.splice(i, 1); window.saveToFirebase(); window.currentFloor = null; } };
 </script>
 </body>
 </html>
