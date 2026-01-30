@@ -2,19 +2,19 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบตรวจเช็คถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --red: #D32F2F; --green: #388E3C; --orange: #F57C00; --blue: #1976D2; --dark: #1A202C; --bg: #F7FAFC; }
-        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; }
+        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; touch-action: manipulation; }
         body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        header { background: var(--red); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1001; }
-        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        header { background: var(--red); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1001; flex-shrink: 0; }
+        .menu-toggle { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
-        .dashboard { background: white; padding: 10px 20px; display: flex; gap: 20px; border-bottom: 1px solid #E2E8F0; z-index: 1000; overflow-x: auto; }
+        .dashboard { background: white; padding: 10px 20px; display: flex; gap: 20px; border-bottom: 1px solid #E2E8F0; z-index: 1000; overflow-x: auto; flex-shrink: 0; }
         .stat-box { display: flex; flex-direction: column; min-width: 80px; }
         .stat-num { font-size: 1.2rem; font-weight: 800; }
         .stat-label { font-size: 0.65rem; color: #718096; font-weight: 600; }
@@ -23,18 +23,23 @@
         
         /* Sidebar Menu */
         .sidebar { 
-            width: 280px; background: var(--dark); color: white; padding: 20px; 
+            position: absolute; left: 0; top: 0; bottom: 0; width: 300px;
+            background: var(--dark); color: white; padding: 20px; 
             display: flex; flex-direction: column; gap: 15px; z-index: 1000;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease; transform: translateX(-100%);
         }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.open { display: block; }
 
-        .viewer { flex: 1; overflow: auto; padding: 20px; background: #cbd5e061; position: relative; }
-        
+        /* Zoomable Viewer Section */
+        .viewer { flex: 1; overflow: hidden; position: relative; background: #cbd5e061; display: flex; align-items: center; justify-content: center; }
+        .map-container { overflow: auto; width: 100%; height: 100%; display: flex; align-items: flex-start; justify-content: flex-start; }
+        .map-wrapper { position: relative; transform-origin: 0 0; line-height: 0; transition: transform 0.1s; }
+        #layout-img { max-width: none; height: auto; }
+
         .floor-card { background: #2D3748; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; margin-bottom: 8px; font-size: 0.9rem; }
         .floor-card.active { border-color: var(--red); background: #4A5568; }
-
-        .map-wrapper { position: relative; background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); line-height: 0; display: inline-block; }
-        #layout-img { max-width: 100%; height: auto; cursor: crosshair; }
 
         .pin { position: absolute; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; }
         .pin i { transform: rotate(45deg); font-size: 10px; color: white; }
@@ -43,30 +48,18 @@
         .pin.repair { background: var(--orange); }
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; color: #333; }
         
-        .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 0.85rem; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 0.9rem; }
         .btn-red { background: var(--red); color: white; }
         .btn-green { background: var(--green); color: white; }
+        .btn-blue { background: var(--blue); color: white; }
         .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
 
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 0.7rem; margin-top: 15px; }
+        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
         th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
-
-        /* Mobile View Styles */
-        @media screen and (max-width: 768px) {
-            .menu-toggle { display: block; }
-            .sidebar { 
-                position: absolute; left: 0; top: 0; bottom: 0; 
-                transform: translateX(-100%); width: 260px; 
-            }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay { 
-                display: none; position: absolute; inset: 0; 
-                background: rgba(0,0,0,0.5); z-index: 999; 
-            }
-            .sidebar-overlay.open { display: block; }
-        }
+        th { background: #f8f9fa; }
     </style>
 </head>
 <body>
@@ -74,9 +67,9 @@
 <header>
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="menu-toggle" onclick="window.toggleMenu()"><i class="fas fa-bars"></i></button>
-        <span style="font-weight: 800; font-size: 0.9rem;">FIRE CHECK - เอกชล</span>
+        <span style="font-weight: 800;">FIRE CHECK เอกชล</span>
     </div>
-    <div id="mode-badge" style="font-size: 0.6rem; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 10px;">ADMIN</div>
+    <div id="mode-badge" style="font-size: 0.6rem; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 10px;">ADMIN</div>
 </header>
 
 <div class="dashboard">
@@ -89,9 +82,10 @@
 <div class="main">
     <div class="sidebar-overlay" id="overlay" onclick="window.toggleMenu()"></div>
     <div class="sidebar" id="sidebar">
-        <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มรูปแปลนชั้น</button>
+        <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มแปลนชั้น</button>
         <input type="file" id="f-up" hidden accept="image/*" onchange="window.processImage(event)">
         <div id="floor-list" style="flex:1; overflow-y:auto; margin-top:5px;"></div>
+        <button class="btn btn-blue" onclick="window.showFullReport()"><i class="fas fa-file-alt"></i> ดูรายงานสรุป (Report)</button>
         <div style="display:flex; gap:5px;">
             <button onclick="window.setMode('admin')" class="btn" style="background:#4A5568; color:white;">ADMIN</button>
             <button onclick="window.setMode('user')" class="btn btn-green">INSPECTOR</button>
@@ -99,20 +93,13 @@
     </div>
     
     <div class="viewer">
-        <div id="empty-hint" style="text-align:center; margin-top:50px; color:#A0AEC0;">
-            <i class="fas fa-map-marked-alt fa-3x"></i><p>เลือกชั้นจากเมนูเพื่อเริ่ม</p>
+        <div id="empty-hint" style="position:absolute; text-align:center; color:#A0AEC0; z-index:1;">
+            <i class="fas fa-map-marked-alt fa-3x"></i><p>เปิดเมนูเลือกชั้น</p>
         </div>
-        <div id="map-area" style="display:none;">
-            <div class="map-wrapper">
+        <div class="map-container">
+            <div class="map-wrapper" id="zoom-wrapper">
                 <img id="layout-img" onclick="window.onMapClick(event)">
                 <div id="pin-layer"></div>
-            </div>
-            <div id="report-section" style="margin-top:20px;">
-                <h4 style="margin-bottom:5px;">สรุปผลชั้นนี้</h4>
-                <table id="report-table">
-                    <thead><tr><th>ID</th><th>สถานะ</th><th>วันที่</th></tr></thead>
-                    <tbody id="report-body"></tbody>
-                </table>
             </div>
         </div>
     </div>
@@ -141,6 +128,7 @@
     window.floors = [];
     window.currentFloor = null;
     window.mode = 'admin';
+    const checklist = ["ตัวถังสมบูรณ์", "เกจวัดสีเขียว", "สลักปกติ", "สายฉีดไม่แตก", "ไม่มีสิ่งกีดขวาง"];
 
     onValue(dbRef, (snapshot) => {
         window.floors = snapshot.val() || [];
@@ -155,10 +143,9 @@
     };
 
     window.refreshUI = () => {
-        const list = document.getElementById('floor-list');
-        list.innerHTML = window.floors.map((f, i) => `
+        document.getElementById('floor-list').innerHTML = window.floors.map((f, i) => `
             <div class="floor-card ${i===window.currentFloor?'active':''}" onclick="window.selectFloor(${i})">
-                ${f.name} ${window.mode==='admin' ? `<span onclick="window.delFloor(event, ${i})" style="float:right; opacity:0.5;">ลบ</span>`:''}
+                ${f.name} ${window.mode==='admin' ? `<span onclick="window.delFloor(event, ${i})" style="float:right;">ลบ</span>`:''}
             </div>
         `).join('');
         
@@ -171,13 +158,11 @@
         document.getElementById('s-repair').innerText = r;
         document.getElementById('s-pending').innerText = p;
         window.renderPins();
-        window.buildReport();
     };
 
     window.selectFloor = (i) => {
         window.currentFloor = i;
         document.getElementById('empty-hint').style.display = 'none';
-        document.getElementById('map-area').style.display = 'block';
         document.getElementById('layout-img').src = window.floors[i].img;
         if(window.innerWidth <= 768) window.toggleMenu();
         window.refreshUI();
@@ -191,6 +176,7 @@
         document.getElementById('modal-body').innerHTML = `
             <h3>เพิ่มถังใหม่</h3>
             <input type="text" id="p-id" placeholder="รหัสถัง (ID)" class="btn btn-outline" style="text-align:left; color:black;">
+            <select id="p-type" class="btn btn-outline" style="text-align:left;"><option>ผงเคมีแห้ง</option><option>CO2</option></select>
             <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึก</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
@@ -199,9 +185,9 @@
 
     window.addPin = (x, y) => {
         const id = document.getElementById('p-id').value;
-        if(!id) return alert("กรุณาระบุ ID");
+        if(!id) return alert("ระบุ ID");
         if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
-        window.floors[window.currentFloor].pins.push({ id, x, y, status: 'pending' });
+        window.floors[window.currentFloor].pins.push({ id, type: document.getElementById('p-type').value, x, y, status: 'pending' });
         window.saveToFirebase(); window.closeModal();
     };
 
@@ -225,25 +211,41 @@
         } else {
             document.getElementById('modal-body').innerHTML = `
                 <h3>ตรวจถัง: ${p.id}</h3>
-                <button class="btn btn-green" onclick="window.updateStatus(${i}, 'done')">ปกติ</button>
-                <button class="btn btn-red" onclick="window.updateStatus(${i}, 'repair')">แจ้งซ่อม</button>
+                ${checklist.map((item, idx) => `
+                    <div class="check-item"><span>${item}</span>
+                    <input type="checkbox" id="c${idx}" checked style="transform:scale(1.5);"></div>
+                `).join('')}
+                <input type="text" id="ins-name" placeholder="ชื่อผู้ตรวจ" class="btn btn-outline" style="text-align:left; color:black; margin-top:10px;">
+                <button class="btn btn-green" onclick="window.submitCheck(${i})">บันทึกผลการตรวจ</button>
                 <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
             `;
             document.getElementById('modal').style.display = 'flex';
         }
     };
 
-    window.updateStatus = (i, s) => {
-        window.floors[window.currentFloor].pins[i].status = s;
-        window.floors[window.currentFloor].pins[i].date = new Date().toLocaleDateString('th-TH');
+    window.submitCheck = (i) => {
+        const name = document.getElementById('ins-name').value;
+        if(!name) return alert("ระบุชื่อผู้ตรวจ");
+        let fail = false;
+        checklist.forEach((_, idx) => { if(!document.getElementById(`c${idx}`).checked) fail = true; });
+        const p = window.floors[window.currentFloor].pins[i];
+        p.status = fail ? 'repair' : 'done';
+        p.by = name; p.date = new Date().toLocaleString('th-TH');
         window.saveToFirebase(); window.closeModal();
     };
 
-    window.buildReport = () => {
-        if (window.currentFloor === null) return;
-        document.getElementById('report-body').innerHTML = (window.floors[window.currentFloor].pins || []).map(p => `
-            <tr><td>${p.id}</td><td>${p.status}</td><td>${p.date || '-'}</td></tr>
-        `).join('');
+    window.showFullReport = () => {
+        if (window.currentFloor === null) return alert("กรุณาเลือกชั้นก่อน");
+        const pins = window.floors[window.currentFloor].pins || [];
+        document.getElementById('modal-body').innerHTML = `
+            <h3>รายงานชั้น: ${window.floors[window.currentFloor].name}</h3>
+            <table border="1">
+                <thead><tr><th>ID</th><th>ประเภท</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่</th></tr></thead>
+                <tbody>${pins.map(p => `<tr><td>${p.id}</td><td>${p.type||'-'}</td><td>${p.status}</td><td>${p.by||'-'}</td><td>${p.date||'-'}</td></tr>`).join('')}</tbody>
+            </table>
+            <button class="btn btn-outline" onclick="window.closeModal()">ปิดรายงาน</button>
+        `;
+        document.getElementById('modal').style.display = 'flex';
     };
 
     window.processImage = (e) => {
@@ -251,18 +253,8 @@
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                let w = img.width, h = img.height;
-                if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
-                canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                const name = prompt("ระบุชื่อชั้น:");
-                if (name) { window.floors.push({ name, img: canvas.toDataURL('image/jpeg', 0.6), pins: [] }); window.saveToFirebase(); }
-            };
-            img.src = ev.target.result;
+            const name = prompt("ชื่อชั้น:");
+            if (name) { window.floors.push({ name, img: ev.target.result, pins: [] }); window.saveToFirebase(); }
         };
         reader.readAsDataURL(file);
     };
