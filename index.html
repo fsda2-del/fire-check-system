@@ -91,11 +91,11 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
+    // แก้ไข firebaseConfig ให้ตรงกับ Region ของคุณ (asia-southeast1)
     const firebaseConfig = {
         apiKey: "AIzaSyCxRj6vnFpyo5xkzzZtu-IoSZGwlKzCmo8",
         authDomain: "fire-extinguisher-check-system.firebaseapp.com",
         projectId: "fire-extinguisher-check-system",
-        // เพิ่มบรรทัดข้างล่างนี้เข้าไปครับ
         databaseURL: "https://fire-extinguisher-check-system-default-rtdb.asia-southeast1.firebasedatabase.app", 
         storageBucket: "fire-extinguisher-check-system.firebasestorage.app",
         messagingSenderId: "92791969264",
@@ -114,6 +114,8 @@
     onValue(dbRef, (snapshot) => {
         window.floors = snapshot.val() || [];
         window.refreshUI();
+    }, (error) => {
+        console.error("Firebase Error:", error);
     });
 
     window.saveToFirebase = () => set(dbRef, window.floors);
