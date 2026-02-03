@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบตรวจเช็คถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
+    <title>แบบตรวจถังดับเพลิง โรงพยาบาลเอกชล อ่างศิลา</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -50,9 +50,9 @@
 <header>
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="menu-toggle" onclick="window.toggleMenu()"><i class="fas fa-bars"></i></button>
-        <span style="font-weight: 800; font-size: 0.9rem;">FIRE CHECK - เอกชล</span>
+        <span style="font-weight: 800; font-size: 0.85rem;">แบบตรวจถังดับเพลิง รพ.เอกชล อ่างศิลา</span>
     </div>
-    <div id="mode-badge" style="font-size: 0.6rem; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 10px;">ADMIN</div>
+    <div id="mode-badge" style="font-size: 0.6rem; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 10px;">USER</div>
 </header>
 
 <div class="dashboard">
@@ -65,13 +65,18 @@
 <div class="main">
     <div class="sidebar-overlay" id="overlay" onclick="window.toggleMenu()"></div>
     <div class="sidebar" id="sidebar">
-        <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มรูปแปลนชั้น</button>
-        <input type="file" id="f-up" hidden accept="image/*" onchange="window.processImage(event)">
+        <div id="admin-tools" style="display:none;">
+            <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มรูปแปลนชั้น</button>
+            <input type="file" id="f-up" hidden accept="image/*" onchange="window.processImage(event)">
+        </div>
+
         <div id="floor-list" style="flex:1; overflow-y:auto; margin-top:5px;"></div>
+        
         <button class="btn btn-blue" onclick="window.showReportModal()"><i class="fas fa-file-alt"></i> ดูรายงานสรุป (Report)</button>
-        <div style="display:flex; gap:5px;">
-            <button onclick="window.setMode('admin')" class="btn" style="background:#4A5568; color:white;">ADMIN</button>
-            <button onclick="window.setMode('user')" class="btn btn-green">INSPECTOR</button>
+        
+        <div style="display:flex; gap:5px; margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
+            <button onclick="window.askAdminPassword()" id="btn-admin-mode" class="btn" style="background:#4A5568; color:white;">ADMIN</button>
+            <button onclick="window.setMode('user')" id="btn-user-mode" class="btn btn-green" style="display:none;">EXIT ADMIN</button>
         </div>
     </div>
     <div class="viewer">
@@ -109,7 +114,7 @@
 
     window.floors = [];
     window.currentFloor = null;
-    window.mode = 'admin';
+    window.mode = 'user';
     const checklistItems = ["ตัวถังสมบูรณ์", "เกจวัดสีเขียว", "สลัก/สายรัดปกติ", "สายฉีดไม่แตก", "ไม่มีสิ่งกีดขวาง"];
 
     onValue(dbRef, (snapshot) => {
@@ -117,11 +122,42 @@
         window.refreshUI();
     });
 
-    window.saveToFirebase = () => set(dbRef, window.floors);
+    window.saveToFirebase = () => {
+        if(window.mode !== 'admin') return; 
+        set(dbRef, window.floors);
+    };
 
     window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('open');
+    };
+
+    window.askAdminPassword = () => {
+        const pass = prompt("กรุณาใส่รหัสผ่านผู้ดูแลระบบ (Admin):");
+        if (pass === "1234") {
+            window.setMode('admin');
+        } else if (pass !== null) {
+            alert("รหัสผ่านไม่ถูกต้อง");
+        }
+    };
+
+    window.setMode = (m) => { 
+        window.mode = m; 
+        document.getElementById('mode-badge').innerText = m.toUpperCase();
+        const adminTools = document.getElementById('admin-tools');
+        const btnAdmin = document.getElementById('btn-admin-mode');
+        const btnUser = document.getElementById('btn-user-mode');
+        
+        if (m === 'admin') {
+            adminTools.style.display = 'block';
+            btnAdmin.style.display = 'none';
+            btnUser.style.display = 'block';
+        } else {
+            adminTools.style.display = 'none';
+            btnAdmin.style.display = 'block';
+            btnUser.style.display = 'none';
+        }
+        window.refreshUI(); 
     };
 
     window.refreshUI = () => {
@@ -164,20 +200,6 @@
         document.getElementById('modal').style.display = 'flex';
     };
 
-    window.renameFloor = (i) => {
-        const newName = prompt("ใส่ชื่อชั้นใหม่:", window.floors[i].name);
-        if(newName) { window.floors[i].name = newName; window.saveToFirebase(); window.closeModal(); }
-    };
-
-    window.delFloor = (i) => {
-        if(confirm("ลบชั้นนี้และข้อมูลทั้งหมด?")) {
-            window.floors.splice(i, 1); window.currentFloor = null;
-            window.saveToFirebase(); window.closeModal();
-            document.getElementById('map-area').style.display = 'none';
-            document.getElementById('empty-hint').style.display = 'block';
-        }
-    };
-
     window.onMapClick = (e) => {
         if (window.mode !== 'admin' || window.currentFloor === null) return;
         const r = e.target.getBoundingClientRect();
@@ -185,14 +207,23 @@
         const y = ((e.clientY - r.top) / r.height) * 100;
         document.getElementById('modal-body').innerHTML = `
             <h3>เพิ่มถังใหม่</h3>
-            <label style="font-size:0.8rem">รหัสถัง (ID):</label>
+            <label style="font-size:0.8rem">1. รหัสถัง (ID):</label>
             <input type="text" id="p-id" placeholder="ระบุรหัส" class="btn btn-outline" style="text-align:left; color:black;">
-            <label style="font-size:0.8rem">ประเภทถัง:</label>
+            
+            <label style="font-size:0.8rem">2. ประเภทถัง:</label>
             <select id="p-type" class="btn btn-outline">
                 <option>ผงเคมีแห้ง</option><option>CO2</option><option>Clean Agent</option><option>โฟม</option>
             </select>
+
+            <label style="font-size:0.8rem">3. ขนาดถัง (Size):</label>
+            <input type="text" id="p-size" placeholder="เช่น 10 ปอนด์" class="btn btn-outline" style="text-align:left; color:black;">
+
+            <label style="font-size:0.8rem">4. จุดติดตั้ง (Location):</label>
+            <input type="text" id="p-loc" placeholder="ระบุตำแหน่งที่ตั้ง" class="btn btn-outline" style="text-align:left; color:black;">
+
             <label style="font-size:0.8rem">วันหมดอายุ:</label>
             <input type="date" id="p-exp" class="btn btn-outline">
+            
             <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึก</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
@@ -202,10 +233,16 @@
     window.addPin = (x, y) => {
         const id = document.getElementById('p-id').value;
         const type = document.getElementById('p-type').value;
+        const size = document.getElementById('p-size').value;
+        const loc = document.getElementById('p-loc').value;
         const exp = document.getElementById('p-exp').value;
+        
         if(!id) return alert("กรุณาระบุ ID");
         if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
-        window.floors[window.currentFloor].pins.push({ id, type, exp, x, y, status: 'pending' });
+        
+        window.floors[window.currentFloor].pins.push({ 
+            id, type, size, loc, exp, x, y, status: 'pending' 
+        });
         window.saveToFirebase(); window.closeModal();
     };
 
@@ -225,17 +262,24 @@
     window.openCheck = (i) => {
         const p = window.floors[window.currentFloor].pins[i];
         if(window.mode === 'admin') {
-            if(confirm(`ลบถัง ${p.id}?`)) { window.floors[window.currentFloor].pins.splice(i, 1); window.saveToFirebase(); }
+            if(confirm(`ลบถัง ${p.id}?`)) { 
+                window.floors[window.currentFloor].pins.splice(i, 1); 
+                window.saveToFirebase(); 
+            }
         } else {
             document.getElementById('modal-body').innerHTML = `
-                <h3>ตรวจถัง: ${p.id} (${p.type})</h3>
-                <p style="font-size:0.75rem; color:red; margin-top:-10px;">วันหมดอายุ: ${p.exp || '-'}</p>
+                <h3>ตรวจถัง: ${p.id}</h3>
+                <div style="font-size:0.8rem; background:#f0f4f8; padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <b>ประเภท:</b> ${p.type} | <b>ขนาด:</b> ${p.size || '-'}<br>
+                    <b>ที่ตั้ง:</b> ${p.loc || '-'} <br>
+                    <b style="color:red;">หมดอายุ:</b> ${p.exp || '-'}
+                </div>
                 <hr>
                 ${checklistItems.map((item, idx) => `
                     <div class="check-item">
                         <span>${idx+1}. ${item}</span>
                         <div class="check-options">
-                            <label class="opt"><input type="radio" name="r${idx}" value="yes" checked> ใช่</label>
+                            <label class="opt"><input type="radio" name="r${idx}" value="yes"> ใช่</label>
                             <label class="opt"><input type="radio" name="r${idx}" value="no"> ไม่ใช่</label>
                         </div>
                     </div>
@@ -253,40 +297,57 @@
         if(!name) return alert("กรุณาใส่ชื่อผู้ตรวจ");
         
         let isFail = false;
+        let incomplete = false;
+
+        // ตรวจสอบว่าติ๊กครบทุกข้อไหม
         checklistItems.forEach((_, idx) => {
-            const val = document.querySelector(`input[name="r${idx}"]:checked`).value;
-            if(val === 'no') isFail = true;
+            const selected = document.querySelector(`input[name="r${idx}"]:checked`);
+            if(!selected) {
+                incomplete = true;
+            } else if(selected.value === 'no') {
+                isFail = true;
+            }
         });
+
+        if(incomplete) return alert("กรุณาติ๊กเลือกคำตอบให้ครบทุกข้อ");
         
         const p = window.floors[window.currentFloor].pins[i];
         p.status = isFail ? 'repair' : 'done';
         p.by = name;
         p.date = new Date().toLocaleString('th-TH');
-        window.saveToFirebase(); window.closeModal();
+        
+        // บันทึกผลตรวจเข้า Firebase ทันที
+        set(dbRef, window.floors); 
+        window.closeModal();
     };
 
     window.showReportModal = () => {
         if(window.currentFloor === null) return alert("เลือกชั้นก่อน");
         const pins = window.floors[window.currentFloor].pins || [];
         document.getElementById('modal-body').innerHTML = `
-            <h3>รายงาน: ${window.floors[window.currentFloor].name}</h3>
+            <h3 style="margin-bottom:5px;">รายงาน: ${window.floors[window.currentFloor].name}</h3>
             <div style="overflow-x:auto">
                 <table>
-                    <thead><tr><th>ID</th><th>ประเภท</th><th>สถานะ</th><th>ผู้ตรวจ</th><th>วันที่</th></tr></thead>
+                    <thead style="background:#edf2f7">
+                        <tr><th>ID</th><th>ประเภท</th><th>ขนาด</th><th>จุดติดตั้ง</th><th>สถานะ</th><th>ผู้ตรวจ</th></tr>
+                    </thead>
                     <tbody>
                         ${pins.map(p => `
                             <tr>
-                                <td>${p.id}</td>
-                                <td>${p.type || '-'}</td>
-                                <td style="color:${p.status==='done'?'green':'orange'}">${p.status==='done'?'ปกติ':'ซ่อม'}</td>
+                                <td><b>${p.id}</b></td>
+                                <td>${p.type}</td>
+                                <td>${p.size || '-'}</td>
+                                <td>${p.loc || '-'}</td>
+                                <td style="color:${p.status==='done'?'green':(p.status==='repair'?'orange':'#999')}">
+                                    ${p.status==='done'?'ปกติ':(p.status==='repair'?'ซ่อม':'ค้าง')}
+                                </td>
                                 <td>${p.by || '-'}</td>
-                                <td>${p.date || '-'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
-            <button class="btn btn-outline" onclick="window.closeModal()" style="margin-top:15px">ปิด</button>
+            <button class="btn btn-outline" onclick="window.closeModal()" style="margin-top:15px">ปิดหน้าต่าง</button>
         `;
         document.getElementById('modal').style.display = 'flex';
     };
@@ -312,9 +373,8 @@
         reader.readAsDataURL(file);
     };
 
-    window.setMode = (m) => { window.mode = m; document.getElementById('mode-badge').innerText = m.toUpperCase(); window.refreshUI(); };
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
-    window.toggleMenu(); // Start with menu open for ease of use
+    window.toggleMenu();
 </script>
 </body>
 </html>
