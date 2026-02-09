@@ -3,85 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>แบบตรวจถังดับเพลิง โรงพยาบาลเอกชล อ่างศิลา</title>
+    <title>ระบบตรวจถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
     <style>
         :root { --red: #D32F2F; --green: #388E3C; --orange: #F57C00; --blue: #1976D2; --dark: #1A202C; --bg: #F7FAFC; }
         * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; }
         body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
+        
         header { background: var(--red); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1001; }
         .menu-toggle { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        
+        #mode-badge { font-size: 0.65rem; padding: 4px 12px; border-radius: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .badge-user { background: #4A5568; color: white; }
+        .badge-admin { background: #FFD700; color: #000; box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+
         .dashboard { background: white; padding: 10px 20px; display: flex; gap: 20px; border-bottom: 1px solid #E2E8F0; z-index: 1000; overflow-x: auto; flex-shrink: 0; }
         .stat-box { display: flex; flex-direction: column; min-width: 80px; }
         .stat-num { font-size: 1.2rem; font-weight: 800; }
         .stat-label { font-size: 0.65rem; color: #718096; font-weight: 600; }
+
         .main { display: flex; flex: 1; position: relative; overflow: hidden; }
         .sidebar { position: absolute; left: 0; top: 0; bottom: 0; width: 280px; background: var(--dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 1000; transition: transform 0.3s ease; transform: translateX(-100%); }
         .sidebar.open { transform: translateX(0); }
         .sidebar-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; }
         .sidebar-overlay.open { display: block; }
+
         .viewer { flex: 1; overflow: auto; padding: 20px; background: #cbd5e061; position: relative; display: flex; justify-content: center; }
         .floor-card { background: #2D3748; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; margin-bottom: 8px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
         .floor-card.active { border-color: var(--red); background: #4A5568; }
+
         .map-wrapper { position: relative; background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); line-height: 0; display: inline-block; height: fit-content; }
         #layout-img { max-width: 1000px; height: auto; cursor: crosshair; }
-        .pin { position: absolute; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; }
+
+        .pin { position: absolute; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; transition: scale 0.2s; }
+        .pin:active { scale: 1.2; }
         .pin i { transform: rotate(45deg); font-size: 10px; color: white; }
-        .pin.pending { background: #A0AEC0; }
+        
+        /* แก้ไขสีหมุดค้างตรวจเป็นสีแดง */
+        .pin.pending { background: var(--red); } 
         .pin.done { background: var(--green); }
         .pin.repair { background: var(--orange); }
+
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; color: #333; }
-        .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 0.85rem; }
+        .modal-content { background: white; width: 100%; max-width: 900px; padding: 20px; border-radius: 12px; max-height: 90vh; overflow-y: auto; color: #333; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-red { background: var(--red); color: white; }
         .btn-green { background: var(--green); color: white; }
         .btn-blue { background: var(--blue); color: white; }
         .btn-outline { background: transparent; border: 1px solid #ddd; color: #666; }
-        .check-item { padding: 10px 0; border-bottom: 1px solid #eee; }
-        .check-options { display: flex; gap: 15px; margin-top: 5px; }
-        .opt { display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.9rem; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-top: 10px; }
-        th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        
+        .check-item { padding: 12px 0; border-bottom: 1px solid #eee; }
+        .check-options { display: flex; gap: 20px; margin-top: 8px; }
+        .opt { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 1rem; }
+        .opt input { width: 18px; height: 18px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 10px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background: #f8f9fa; position: sticky; top: 0; }
+        .admin-only { border: 2px dashed #D32F2F; padding: 10px; border-radius: 8px; margin-bottom: 15px; background: rgba(211, 47, 47, 0.05); }
+
+        /* สไตล์เพิ่มเติมสำหรับปุ่มเรียงลำดับ */
+        .order-controls { display: flex; gap: 5px; margin-left: 10px; }
+        .order-btn { background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; }
+        .order-btn:hover { background: var(--red); }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="display:flex; align-items:center; gap:10px;">
+    <div style="display:flex; align-items:center; gap:12px;">
         <button class="menu-toggle" onclick="window.toggleMenu()"><i class="fas fa-bars"></i></button>
-        <span style="font-weight: 800; font-size: 0.85rem;">แบบตรวจถังดับเพลิง รพ.เอกชล อ่างศิลา</span>
+        <div style="line-height: 1.2;">
+            <div style="font-weight: 800; font-size: 0.9rem;">ระบบตรวจถังดับเพลิง</div>
+            <div style="font-size: 0.7rem; opacity: 0.8;">รพ.เอกชล อ่างศิลา</div>
+        </div>
     </div>
-    <div id="mode-badge" style="font-size: 0.6rem; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 10px;">USER</div>
+    <div id="mode-badge" class="badge-user">INSPECTOR</div>
 </header>
 
 <div class="dashboard">
     <div class="stat-box"><span class="stat-num" id="s-total" style="color: var(--blue);">0</span><span class="stat-label">จุดติดตั้ง</span></div>
     <div class="stat-box"><span class="stat-num" id="s-done" style="color: var(--green);">0</span><span class="stat-label">ปกติ</span></div>
     <div class="stat-box"><span class="stat-num" id="s-repair" style="color: var(--orange);">0</span><span class="stat-label">แจ้งซ่อม</span></div>
-    <div class="stat-box"><span class="stat-num" id="s-pending" style="color: #A0AEC0;">0</span><span class="stat-label">ค้างตรวจ</span></div>
+    <div class="stat-box"><span class="stat-num" id="s-pending" style="color: var(--red);">0</span><span class="stat-label">ค้างตรวจ</span></div>
 </div>
 
 <div class="main">
     <div class="sidebar-overlay" id="overlay" onclick="window.toggleMenu()"></div>
     <div class="sidebar" id="sidebar">
-        <div id="admin-tools" style="display:none;">
-            <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มรูปแปลนชั้น</button>
+        
+        <div id="admin-tools" style="display:none;" class="admin-only">
+            <p style="color:var(--red); font-weight:800; font-size:0.7rem; margin:0 0 10px 0; text-align:center;">ADMIN CONTROLS</p>
+            <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มแปลนชั้นใหม่</button>
             <input type="file" id="f-up" hidden accept="image/*" onchange="window.processImage(event)">
         </div>
 
-        <div id="floor-list" style="flex:1; overflow-y:auto; margin-top:5px;"></div>
+        <div style="font-size: 0.75rem; color: #718096; font-weight: 600; margin-bottom: 5px;">เลือกรายการชั้น:</div>
+        <div id="floor-list" style="flex:1; overflow-y:auto;"></div>
         
-        <button class="btn btn-blue" onclick="window.showReportModal()"><i class="fas fa-file-alt"></i> ดูรายงานสรุป (Report)</button>
+        <button class="btn btn-blue" onclick="window.showReportModal()"><i class="fas fa-file-alt"></i> ดูรายงานสรุป</button>
         
-        <div style="display:flex; gap:5px; margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
-            <button onclick="window.askAdminPassword()" id="btn-admin-mode" class="btn" style="background:#4A5568; color:white;">ADMIN</button>
-            <button onclick="window.setMode('user')" id="btn-user-mode" class="btn btn-green" style="display:none;">EXIT ADMIN</button>
+        <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
+            <button onclick="window.askAdminPassword()" id="btn-admin-mode" class="btn btn-outline" style="color: #A0AEC0; border-color: #4A5568;"><i class="fas fa-lock"></i> Admin Login</button>
+            <button onclick="window.setMode('user')" id="btn-user-mode" class="btn btn-red" style="display:none;"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ Admin</button>
         </div>
     </div>
+
     <div class="viewer">
-        <div id="empty-hint" style="text-align:center; margin-top:50px; color:#A0AEC0; position:absolute;">
-            <i class="fas fa-map-marked-alt fa-3x"></i><p>เลือกชั้นจากเมนูเพื่อเริ่ม</p>
+        <div id="empty-hint" style="text-align:center; margin-top:80px; color:#A0AEC0; position:absolute;">
+            <i class="fas fa-map-marked-alt fa-4x" style="margin-bottom: 15px; opacity:0.3;"></i>
+            <p>กรุณาเลือกชั้นจากเมนูเพื่อเริ่มทำการตรวจ</p>
         </div>
         <div id="map-area" style="display:none;">
             <div class="map-wrapper">
@@ -114,8 +148,8 @@
 
     window.floors = [];
     window.currentFloor = null;
-    window.mode = 'user';
-    const checklistItems = ["ตัวถังสมบูรณ์", "เกจวัดสีเขียว", "สลัก/สายรัดปกติ", "สายฉีดไม่แตก", "ไม่มีสิ่งกีดขวาง"];
+    window.mode = 'user'; 
+    const checklistItems = ["ตัวถังสมบูรณ์ ไม่บุบ/สนิม", "เกจวัดอยู่ในแถบสีเขียว", "สลักและสายรัดอยู่ในสภาพปกติ", "สายฉีดไม่แตกกรอบ/ไม่อุดตัน", "ติดตั้งในที่มองเห็นและไม่มีสิ่งกีดขวาง"];
 
     onValue(dbRef, (snapshot) => {
         window.floors = snapshot.val() || [];
@@ -123,7 +157,6 @@
     });
 
     window.saveToFirebase = () => {
-        if(window.mode !== 'admin') return; 
         set(dbRef, window.floors);
     };
 
@@ -133,9 +166,10 @@
     };
 
     window.askAdminPassword = () => {
-        const pass = prompt("กรุณาใส่รหัสผ่านผู้ดูแลระบบ (Admin):");
+        const pass = prompt("เข้าสู่ระบบผู้ดูแลระบบ (Admin):\nกรุณาใส่รหัสผ่าน:");
         if (pass === "1234") {
             window.setMode('admin');
+            alert("ยินดีต้อนรับ Admin! คุณสามารถแก้ไขจุดติดตั้งและชั้นได้แล้ว");
         } else if (pass !== null) {
             alert("รหัสผ่านไม่ถูกต้อง");
         }
@@ -143,16 +177,20 @@
 
     window.setMode = (m) => { 
         window.mode = m; 
-        document.getElementById('mode-badge').innerText = m.toUpperCase();
+        const badge = document.getElementById('mode-badge');
         const adminTools = document.getElementById('admin-tools');
         const btnAdmin = document.getElementById('btn-admin-mode');
         const btnUser = document.getElementById('btn-user-mode');
         
         if (m === 'admin') {
+            badge.innerText = "ADMIN MODE";
+            badge.className = "badge-admin";
             adminTools.style.display = 'block';
             btnAdmin.style.display = 'none';
             btnUser.style.display = 'block';
         } else {
+            badge.innerText = "INSPECTOR";
+            badge.className = "badge-user";
             adminTools.style.display = 'none';
             btnAdmin.style.display = 'block';
             btnUser.style.display = 'none';
@@ -160,12 +198,37 @@
         window.refreshUI(); 
     };
 
+    // ฟังก์ชันย้ายลำดับชั้น (Move Up/Down)
+    window.moveFloor = (e, index, direction) => {
+        e.stopPropagation();
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= window.floors.length) return;
+
+        // สลับตำแหน่งใน Array
+        const temp = window.floors[index];
+        window.floors[index] = window.floors[targetIndex];
+        window.floors[targetIndex] = temp;
+
+        // อัปเดต currentFloor ให้ตามชั้นที่เลือกไป
+        if (window.currentFloor === index) window.currentFloor = targetIndex;
+        else if (window.currentFloor === targetIndex) window.currentFloor = index;
+
+        window.saveToFirebase();
+        window.refreshUI();
+    };
+
     window.refreshUI = () => {
         const list = document.getElementById('floor-list');
         list.innerHTML = window.floors.map((f, i) => `
             <div class="floor-card ${i===window.currentFloor?'active':''}" onclick="window.selectFloor(${i})">
-                <span style="flex:1">${f.name}</span>
-                ${window.mode==='admin' ? `<i class="fas fa-edit" style="opacity:0.5" onclick="window.manageFloor(event, ${i})"></i>` : ''}
+                <span style="flex:1"><i class="fas fa-layer-group" style="margin-right:8px; opacity:0.6;"></i> ${f.name}</span>
+                ${window.mode==='admin' ? `
+                    <div class="order-controls">
+                        <button class="order-btn" onclick="window.moveFloor(event, ${i}, -1)"><i class="fas fa-arrow-up"></i></button>
+                        <button class="order-btn" onclick="window.moveFloor(event, ${i}, 1)"><i class="fas fa-arrow-down"></i></button>
+                        <i class="fas fa-cog" style="padding:5px; margin-left:5px;" onclick="window.manageFloor(event, ${i})"></i>
+                    </div>
+                ` : '<i class="fas fa-chevron-right" style="font-size:0.7rem; opacity:0.3"></i>'}
             </div>
         `).join('');
         
@@ -191,40 +254,61 @@
 
     window.manageFloor = (e, i) => {
         e.stopPropagation();
+        if(window.mode !== 'admin') return;
         document.getElementById('modal-body').innerHTML = `
-            <h3>จัดการชั้น: ${window.floors[i].name}</h3>
+            <h3 style="color:var(--red)"><i class="fas fa-edit"></i> แก้ไขข้อมูลชั้น</h3>
+            <p>ชื่อชั้นปัจจุบัน: <b>${window.floors[i].name}</b></p>
             <button class="btn btn-blue" onclick="window.renameFloor(${i})">เปลี่ยนชื่อชั้น</button>
-            <button class="btn btn-red" onclick="window.delFloor(${i})">ลบชั้นนี้</button>
+            <button class="btn btn-red" onclick="window.delFloor(${i})">ลบชั้นนี้ (คำเตือน: ข้อมูลถังจะหายทั้งหมด)</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
         document.getElementById('modal').style.display = 'flex';
     };
 
+    window.renameFloor = (i) => {
+        const n = prompt("ระบุชื่อชั้นใหม่:", window.floors[i].name);
+        if(n) { window.floors[i].name = n; window.saveToFirebase(); window.closeModal(); window.refreshUI(); }
+    };
+
+    window.delFloor = (i) => {
+        if(confirm("คุณแน่ใจหรือไม่ที่จะลบชั้นนี้? ข้อมูลถังดับเพลิงทั้งหมดในชั้นนี้จะถูกลบถาวร")) {
+            window.floors.splice(i, 1);
+            window.currentFloor = null;
+            document.getElementById('map-area').style.display = 'none';
+            document.getElementById('empty-hint').style.display = 'block';
+            window.saveToFirebase();
+            window.closeModal();
+        }
+    };
+
     window.onMapClick = (e) => {
         if (window.mode !== 'admin' || window.currentFloor === null) return;
+        
         const r = e.target.getBoundingClientRect();
         const x = ((e.clientX - r.left) / r.width) * 100;
         const y = ((e.clientY - r.top) / r.height) * 100;
+        
         document.getElementById('modal-body').innerHTML = `
-            <h3>เพิ่มถังใหม่</h3>
-            <label style="font-size:0.8rem">1. รหัสถัง (ID):</label>
-            <input type="text" id="p-id" placeholder="ระบุรหัส" class="btn btn-outline" style="text-align:left; color:black;">
-            
-            <label style="font-size:0.8rem">2. ประเภทถัง:</label>
-            <select id="p-type" class="btn btn-outline">
-                <option>ผงเคมีแห้ง</option><option>CO2</option><option>Clean Agent</option><option>โฟม</option>
-            </select>
+            <h3 style="margin-bottom:15px;"><i class="fas fa-plus-circle"></i> เพิ่มจุดติดตั้งถังใหม่</h3>
+            <div style="display:grid; gap:10px;">
+                <div><label style="font-size:0.75rem; color:#666;">รหัสถัง (ID)</label>
+                <input type="text" id="p-id" placeholder="เช่น FE-001" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
+                
+                <div><label style="font-size:0.75rem; color:#666;">ประเภท</label>
+                <select id="p-type" class="btn btn-outline" style="margin:0;">
+                    <option>ผงเคมีแห้ง (Dry Chemical)</option><option>CO2</option><option>Clean Agent</option><option>โฟม</option>
+                </select></div>
 
-            <label style="font-size:0.8rem">3. ขนาดถัง (Size):</label>
-            <input type="text" id="p-size" placeholder="เช่น 10 ปอนด์" class="btn btn-outline" style="text-align:left; color:black;">
+                <div><label style="font-size:0.75rem; color:#666;">ขนาด</label>
+                <input type="text" id="p-size" placeholder="เช่น 10 ปอนด์" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
 
-            <label style="font-size:0.8rem">4. จุดติดตั้ง (Location):</label>
-            <input type="text" id="p-loc" placeholder="ระบุตำแหน่งที่ตั้ง" class="btn btn-outline" style="text-align:left; color:black;">
+                <div><label style="font-size:0.75rem; color:#666;">จุดติดตั้ง</label>
+                <input type="text" id="p-loc" placeholder="เช่น หน้าห้องฉุกเฉิน" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
 
-            <label style="font-size:0.8rem">วันหมดอายุ:</label>
-            <input type="date" id="p-exp" class="btn btn-outline">
-            
-            <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึก</button>
+                <div><label style="font-size:0.75rem; color:#666;">วันหมดอายุ</label>
+                <input type="date" id="p-exp" class="btn btn-outline" style="margin:0;"></div>
+            </div>
+            <button class="btn btn-red" onclick="window.addPin(${x}, ${y})">บันทึกจุดติดตั้ง</button>
             <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
         `;
         document.getElementById('modal').style.display = 'flex';
@@ -232,27 +316,32 @@
 
     window.addPin = (x, y) => {
         const id = document.getElementById('p-id').value;
-        const type = document.getElementById('p-type').value;
-        const size = document.getElementById('p-size').value;
-        const loc = document.getElementById('p-loc').value;
-        const exp = document.getElementById('p-exp').value;
-        
         if(!id) return alert("กรุณาระบุ ID");
-        if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
         
-        window.floors[window.currentFloor].pins.push({ 
-            id, type, size, loc, exp, x, y, status: 'pending' 
-        });
+        const pin = {
+            id, 
+            type: document.getElementById('p-type').value,
+            size: document.getElementById('p-size').value,
+            loc: document.getElementById('p-loc').value,
+            exp: document.getElementById('p-exp').value,
+            x, y, status: 'pending'
+        };
+        
+        if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
+        window.floors[window.currentFloor].pins.push(pin);
         window.saveToFirebase(); window.closeModal();
     };
 
     window.renderPins = () => {
-        const layer = document.getElementById('pin-layer'); layer.innerHTML = '';
+        const layer = document.getElementById('pin-layer'); 
+        layer.innerHTML = '';
         if (window.currentFloor === null || !window.floors[window.currentFloor].pins) return;
+        
         window.floors[window.currentFloor].pins.forEach((p, i) => {
             const div = document.createElement('div');
             div.className = `pin ${p.status}`;
-            div.style.left = p.x + '%'; div.style.top = p.y + '%';
+            div.style.left = p.x + '%'; 
+            div.style.top = p.y + '%';
             div.innerHTML = `<i class="fas fa-fire-extinguisher"></i>`;
             div.onclick = (e) => { e.stopPropagation(); window.openCheck(i); };
             layer.appendChild(div);
@@ -261,95 +350,150 @@
 
     window.openCheck = (i) => {
         const p = window.floors[window.currentFloor].pins[i];
+        
         if(window.mode === 'admin') {
-            if(confirm(`ลบถัง ${p.id}?`)) { 
-                window.floors[window.currentFloor].pins.splice(i, 1); 
-                window.saveToFirebase(); 
-            }
+            document.getElementById('modal-body').innerHTML = `
+                <h3><i class="fas fa-tools"></i> จัดการถัง: ${p.id}</h3>
+                <div style="font-size:0.85rem; background:#f8f9fa; padding:12px; border-radius:8px; line-height:1.6;">
+                    <b>ID:</b> ${p.id}<br>
+                    <b>ประเภท:</b> ${p.type}<br>
+                    <b>ขนาด:</b> ${p.size || '-'}<br>
+                    <b>ตำแหน่ง:</b> ${p.loc}<br>
+                    <b>วันหมดอายุ:</b> ${p.exp || '-'}
+                </div>
+                <button class="btn btn-red" onclick="window.deletePin(${i})"><i class="fas fa-trash"></i> ลบจุดติดตั้งนี้</button>
+                <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
+            `;
         } else {
             document.getElementById('modal-body').innerHTML = `
-                <h3>ตรวจถัง: ${p.id}</h3>
-                <div style="font-size:0.8rem; background:#f0f4f8; padding:10px; border-radius:8px; margin-bottom:10px;">
-                    <b>ประเภท:</b> ${p.type} | <b>ขนาด:</b> ${p.size || '-'}<br>
-                    <b>ที่ตั้ง:</b> ${p.loc || '-'} <br>
-                    <b style="color:red;">หมดอายุ:</b> ${p.exp || '-'}
-                </div>
+                <h3 style="margin-bottom:5px;">แบบตรวจถัง: ${p.id}</h3>
+                <p style="font-size:0.75rem; color:#666; margin-bottom:15px;">ตำแหน่ง: ${p.loc || '-'}</p>
                 <hr>
                 ${checklistItems.map((item, idx) => `
                     <div class="check-item">
-                        <span>${idx+1}. ${item}</span>
+                        <div style="font-size:0.9rem; font-weight:600;">${idx+1}. ${item}</div>
                         <div class="check-options">
-                            <label class="opt"><input type="radio" name="r${idx}" value="yes"> ใช่</label>
-                            <label class="opt"><input type="radio" name="r${idx}" value="no"> ไม่ใช่</label>
+                            <label class="opt"><input type="radio" name="r${idx}" value="yes"> ปกติ</label>
+                            <label class="opt"><input type="radio" name="r${idx}" value="no"> ผิดปกติ</label>
                         </div>
                     </div>
                 `).join('')}
-                <input type="text" id="ins-name" placeholder="ชื่อผู้ตรวจ" class="btn btn-outline" style="text-align:left; color:black; margin-top:10px;">
-                <button class="btn btn-green" onclick="window.submitCheck(${i})">ส่งผลการตรวจ</button>
-                <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
+                <div style="margin-top:15px;">
+                    <label style="font-size:0.8rem; font-weight:bold;">ชื่อผู้ตรวจ:</label>
+                    <input type="text" id="ins-name" placeholder="ระบุชื่อของคุณ" class="btn btn-outline" style="text-align:left; color:black;">
+                </div>
+                <button class="btn btn-green" onclick="window.submitCheck(${i})"><i class="fas fa-check-circle"></i> ส่งผลการตรวจ</button>
+                <button class="btn btn-outline" onclick="window.closeModal()">ยกเลิก</button>
             `;
-            document.getElementById('modal').style.display = 'flex';
         }
+        document.getElementById('modal').style.display = 'flex';
     };
+
+    window.deletePin = (i) => {
+        if(confirm("ยืนยันการลบจุดติดตั้งถังดับเพลิงนี้?")) {
+            window.floors[window.currentFloor].pins.splice(i, 1);
+            window.saveToFirebase();
+            window.closeModal();
+        }
+    }
 
     window.submitCheck = (i) => {
         const name = document.getElementById('ins-name').value;
-        if(!name) return alert("กรุณาใส่ชื่อผู้ตรวจ");
+        if(!name) return alert("กรุณาระบุชื่อผู้ตรวจ");
         
         let isFail = false;
         let incomplete = false;
 
-        // ตรวจสอบว่าติ๊กครบทุกข้อไหม
         checklistItems.forEach((_, idx) => {
             const selected = document.querySelector(`input[name="r${idx}"]:checked`);
-            if(!selected) {
-                incomplete = true;
-            } else if(selected.value === 'no') {
-                isFail = true;
-            }
+            if(!selected) incomplete = true;
+            else if(selected.value === 'no') isFail = true;
         });
 
-        if(incomplete) return alert("กรุณาติ๊กเลือกคำตอบให้ครบทุกข้อ");
+        if(incomplete) return alert("กรุณาทำรายการตรวจให้ครบทุกข้อ");
         
         const p = window.floors[window.currentFloor].pins[i];
         p.status = isFail ? 'repair' : 'done';
         p.by = name;
         p.date = new Date().toLocaleString('th-TH');
         
-        // บันทึกผลตรวจเข้า Firebase ทันที
-        set(dbRef, window.floors); 
+        window.saveToFirebase(); 
         window.closeModal();
+        alert("บันทึกข้อมูลเรียบร้อยแล้ว");
     };
 
     window.showReportModal = () => {
-        if(window.currentFloor === null) return alert("เลือกชั้นก่อน");
-        const pins = window.floors[window.currentFloor].pins || [];
+        if(window.currentFloor === null) return alert("กรุณาเลือกชั้นที่ต้องการดูรายงาน");
+        const floor = window.floors[window.currentFloor];
+        const pins = floor.pins || [];
+        
         document.getElementById('modal-body').innerHTML = `
-            <h3 style="margin-bottom:5px;">รายงาน: ${window.floors[window.currentFloor].name}</h3>
-            <div style="overflow-x:auto">
-                <table>
-                    <thead style="background:#edf2f7">
-                        <tr><th>ID</th><th>ประเภท</th><th>ขนาด</th><th>จุดติดตั้ง</th><th>สถานะ</th><th>ผู้ตรวจ</th></tr>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">รายงานสถานะ: ${floor.name}</h3>
+                <button class="btn btn-green" style="width:auto; margin:0;" onclick="window.exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Export to Excel
+                </button>
+            </div>
+            <div style="overflow-x:auto; border:1px solid #eee; border-radius:8px;">
+                <table id="report-table">
+                    <thead>
+                        <tr>
+                            <th>รหัสถัง (ID)</th>
+                            <th>ประเภท</th>
+                            <th>ขนาด</th>
+                            <th>จุดติดตั้ง</th>
+                            <th>วันหมดอายุ</th>
+                            <th>สถานะ</th>
+                            <th>ผู้ตรวจ</th>
+                            <th>วันที่ตรวจล่าสุด</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        ${pins.map(p => `
+                        ${pins.length ? pins.map(p => `
                             <tr>
                                 <td><b>${p.id}</b></td>
-                                <td>${p.type}</td>
+                                <td>${p.type || '-'}</td>
                                 <td>${p.size || '-'}</td>
                                 <td>${p.loc || '-'}</td>
-                                <td style="color:${p.status==='done'?'green':(p.status==='repair'?'orange':'#999')}">
+                                <td>${p.exp || '-'}</td>
+                                <td style="color:${p.status==='done'?'green':(p.status==='repair'?'orange':'red')}">
+                                    <i class="fas ${p.status==='done'?'fa-check-circle':(p.status==='repair'?'fa-exclamation-triangle':'fa-clock')}"></i>
                                     ${p.status==='done'?'ปกติ':(p.status==='repair'?'ซ่อม':'ค้าง')}
                                 </td>
                                 <td>${p.by || '-'}</td>
+                                <td><small>${p.date || '-'}</small></td>
                             </tr>
-                        `).join('')}
+                        `).join('') : '<tr><td colspan="8" style="text-align:center">ไม่มีข้อมูล</td></tr>'}
                     </tbody>
                 </table>
             </div>
             <button class="btn btn-outline" onclick="window.closeModal()" style="margin-top:15px">ปิดหน้าต่าง</button>
         `;
         document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.exportToExcel = () => {
+        const floorName = window.floors[window.currentFloor].name;
+        const pins = window.floors[window.currentFloor].pins || [];
+        
+        if (pins.length === 0) return alert("ไม่มีข้อมูลสำหรับการ Export");
+
+        const excelData = pins.map(p => ({
+            "รหัสถัง": p.id,
+            "ประเภท": p.type,
+            "ขนาด": p.size,
+            "จุดติดตั้ง": p.loc,
+            "วันหมดอายุ": p.exp,
+            "สถานะ": p.status === 'done' ? 'ปกติ' : (p.status === 'repair' ? 'ส่งซ่อม' : 'ยังไม่ได้ตรวจ'),
+            "ผู้ตรวจ": p.by || '-',
+            "วันที่ตรวจ": p.date || '-'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+        
+        XLSX.writeFile(workbook, `รายงานตรวจถัง_${floorName}_${new Date().toLocaleDateString('th-TH')}.xlsx`);
     };
 
     window.processImage = (e) => {
@@ -360,13 +504,16 @@
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 1000;
+                const MAX_WIDTH = 1200;
                 let w = img.width, h = img.height;
                 if (w > MAX_WIDTH) { h *= MAX_WIDTH / w; w = MAX_WIDTH; }
                 canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                const name = prompt("ชื่อชั้น:");
-                if (name) { window.floors.push({ name, img: canvas.toDataURL('image/jpeg', 0.7), pins: [] }); window.saveToFirebase(); }
+                const name = prompt("ระบุชื่อชั้น (เช่น ชั้น 1 ตึก A):");
+                if (name) { 
+                    window.floors.push({ name, img: canvas.toDataURL('image/jpeg', 0.6), pins: [] }); 
+                    window.saveToFirebase(); 
+                }
             };
             img.src = ev.target.result;
         };
@@ -374,7 +521,9 @@
     };
 
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
-    window.toggleMenu();
+    
+    setTimeout(() => { if(!window.currentFloor) window.toggleMenu(); }, 500);
+
 </script>
 </body>
 </html>
