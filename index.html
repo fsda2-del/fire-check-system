@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบตรวจถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -36,7 +36,7 @@
         .floor-card.active { border-color: var(--red); background: #4A5568; }
 
         .map-wrapper { position: relative; background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); line-height: 0; display: inline-block; height: fit-content; }
-        #layout-img { max-width: 1000px; height: auto; cursor: crosshair; }
+        #layout-img { max-width: 1000px; /* ในคอมให้ใหญ่สุดแค่ 1000px เหมือนเดิม */height: auto; cursor: crosshair; }
 
         .pin { position: absolute; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; transition: scale 0.2s; }
         .pin:active { scale: 1.2; }
@@ -69,6 +69,12 @@
         .order-controls { display: flex; gap: 5px; margin-left: 10px; }
         .order-btn { background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; }
         .order-btn:hover { background: var(--red); }
+    /* --- ส่วนคำสั่งสำหรับมือถือ --- */
+@media (max-width: 768px) {
+    .viewer { padding: 0; display: block; overflow: auto; }
+    #layout-img { width: 100%; max-width: none; /* ปลดล็อค 1000px เฉพาะในมือถือ */}
+    .map-wrapper { display: inline-block; min-width: 100%; }
+}
     </style>
 </head>
 <body>
