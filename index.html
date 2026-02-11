@@ -71,22 +71,20 @@
         .order-btn:hover { background: var(--red); }
     /* --- ส่วนคำสั่งสำหรับมือถือ --- */
 @media (max-width: 768px) {
-    .viewer { padding: 0; overflow: hidden; /* ล็อคขอบเขต ไม่ให้รูปล้นออกไปนอกพื้นที่สีเทา */touch-action: none; /* ปิดการซูมแบบปกติ เพื่อใช้ระบบซูมพิเศษที่เราจะใส่ */}
-    .map-wrapper { transition: transform 0.1s ease-out; /* ทำให้การซูมดูนุ่มนวล */transform-origin: center center;}
-    #layout-img { width: 100vw; max-width: none; }}
+    .viewer { padding: 0; overflow: auto; /* เปิดให้เลื่อนนิ้วได้ */display: block;-webkit-overflow-scrolling: touch; }
+    .map-wrapper { position: relative;display: block;transform-origin: 0 0; /* สำคัญ: ให้ขยายออกจากมุมซ้ายบน */transition: transform 0.1s ease-out;}
+    #layout-img { width: 100vw; max-width: none; height: auto;}}
 
     /* ล็อคขนาดหน้าต่างตรวจ (Modal) ไม่ให้ขยายตามรูป */
     .modal {position: fixed;width: 100%;height: 100%;z-index: 9999;}}
     </style>
     <script>
-    // ระบบควบคุมการซูมเฉพาะรูปภาพแปลน
     document.addEventListener('DOMContentLoaded', () => {
         const viewer = document.querySelector('.viewer');
         const wrapper = document.querySelector('.map-wrapper');
         let scale = 1;
         let lastDist = 0;
 
-        // เมื่อเริ่มสัมผัสด้วย 2 นิ้ว
         viewer.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 lastDist = Math.hypot(
@@ -96,10 +94,9 @@
             }
         });
 
-        // เมื่อขยับนิ้ว (ถ่างออกหรือหุบเข้า)
         viewer.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
-                e.preventDefault(); // ล็อคไม่ให้หน้าจอแอปขยับตาม
+                // e.preventDefault(); // ปิดไว้เพื่อให้ระบบ Scroll พื้นฐานทำงานได้
                 const dist = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
@@ -107,15 +104,21 @@
                 
                 const delta = dist / lastDist;
                 scale *= delta;
+                scale = Math.min(Math.max(1, scale), 4); // ซูมได้สูงสุด 4 เท่า
                 
-                // จำกัดการซูม: ต่ำสุด 1 เท่า (ปกติ) / สูงสุด 4 เท่า
-                scale = Math.min(Math.max(1, scale), 4);
-                
-                // สั่งให้ซูมเฉพาะตัวแปลน
+                // --- จุดสำคัญที่ต้องเพิ่มเพื่อให้เลื่อนได้ ---
                 wrapper.style.transform = `scale(${scale})`;
+                // สั่งให้กล่องหุ้ม ขยายขนาดตาม scale เพื่อให้เกิดการ Scroll
+                wrapper.style.width = (scale * 100) + "vw"; 
+                wrapper.style.height = (scale * 80) + "vh"; // ปรับตามความเหมาะสมของรูป
+                
                 lastDist = dist;
             }
-        }, { passive: false });
+        });
+
+        viewer.addEventListener('touchend', () => {
+            lastDist = 0;
+        });
     });
 </script>
 </head>
