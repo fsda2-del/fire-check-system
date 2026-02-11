@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบตรวจถังดับเพลิง - รพ.เอกชล อ่างศิลา</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -71,11 +71,53 @@
         .order-btn:hover { background: var(--red); }
     /* --- ส่วนคำสั่งสำหรับมือถือ --- */
 @media (max-width: 768px) {
-    .viewer { padding: 0; display: block; overflow: auto; }
-    #layout-img { width: 100%; max-width: none; /* ปลดล็อค 1000px เฉพาะในมือถือ */}
-    .map-wrapper { display: inline-block; min-width: 100%; }
-}
+    .viewer { padding: 0; overflow: hidden; /* ล็อคขอบเขต ไม่ให้รูปล้นออกไปนอกพื้นที่สีเทา */touch-action: none; /* ปิดการซูมแบบปกติ เพื่อใช้ระบบซูมพิเศษที่เราจะใส่ */}
+    .map-wrapper { transition: transform 0.1s ease-out; /* ทำให้การซูมดูนุ่มนวล */transform-origin: center center;}
+    #layout-img { width: 100vw; max-width: none; }}
+
+    /* ล็อคขนาดหน้าต่างตรวจ (Modal) ไม่ให้ขยายตามรูป */
+    .modal {position: fixed;width: 100%;height: 100%;z-index: 9999;}}
     </style>
+    <script>
+    // ระบบควบคุมการซูมเฉพาะรูปภาพแปลน
+    document.addEventListener('DOMContentLoaded', () => {
+        const viewer = document.querySelector('.viewer');
+        const wrapper = document.querySelector('.map-wrapper');
+        let scale = 1;
+        let lastDist = 0;
+
+        // เมื่อเริ่มสัมผัสด้วย 2 นิ้ว
+        viewer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                lastDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        });
+
+        // เมื่อขยับนิ้ว (ถ่างออกหรือหุบเข้า)
+        viewer.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault(); // ล็อคไม่ให้หน้าจอแอปขยับตาม
+                const dist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                
+                const delta = dist / lastDist;
+                scale *= delta;
+                
+                // จำกัดการซูม: ต่ำสุด 1 เท่า (ปกติ) / สูงสุด 4 เท่า
+                scale = Math.min(Math.max(1, scale), 4);
+                
+                // สั่งให้ซูมเฉพาะตัวแปลน
+                wrapper.style.transform = `scale(${scale})`;
+                lastDist = dist;
+            }
+        }, { passive: false });
+    });
+</script>
 </head>
 <body>
 
