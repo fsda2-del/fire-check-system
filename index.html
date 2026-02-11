@@ -71,21 +71,21 @@
         .order-btn:hover { background: var(--red); }
     /* --- ส่วนคำสั่งสำหรับมือถือ --- */
 @media (max-width: 768px) {
-    .viewer { padding: 0; overflow: auto; /* เปิดให้เลื่อนนิ้วได้ */display: block;-webkit-overflow-scrolling: touch; }
-    .map-wrapper { position: relative;display: block;transform-origin: 0 0; /* สำคัญ: ให้ขยายออกจากมุมซ้ายบน */transition: transform 0.1s ease-out;}
-    #layout-img { width: 100vw; max-width: none; height: auto;}}
+    .viewer { padding: 0; overflow: auto; /* เปิดให้เลื่อนได้ */display: block;position: relative;}
+    .map-wrapper { display: inline-block; /* ให้กล่องโตตามขนาดรูปด้านใน */position: relative;min-width: 100%;}
+    #layout-img { width: 100vw; /* เริ่มต้นที่ความกว้างจอ */max-width: none; height: auto;display: block;}}
 
     /* ล็อคขนาดหน้าต่างตรวจ (Modal) ไม่ให้ขยายตามรูป */
     .modal {position: fixed;width: 100%;height: 100%;z-index: 9999;}}
     </style>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const viewer = document.querySelector('.viewer');
+        const img = document.getElementById('layout-img');
         const wrapper = document.querySelector('.map-wrapper');
-        let scale = 1;
+        let currentWidth = 100; // เริ่มต้นที่ 100% ของหน้าจอ
         let lastDist = 0;
 
-        viewer.addEventListener('touchstart', (e) => {
+        wrapper.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 lastDist = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
@@ -94,29 +94,29 @@
             }
         });
 
-        viewer.addEventListener('touchmove', (e) => {
+        wrapper.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
-                // e.preventDefault(); // ปิดไว้เพื่อให้ระบบ Scroll พื้นฐานทำงานได้
+                // ไม่ต้องใช้ e.preventDefault() เพื่อให้เลื่อนนิ้วได้เป็นธรรมชาติ
                 const dist = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
                 
                 const delta = dist / lastDist;
-                scale *= delta;
-                scale = Math.min(Math.max(1, scale), 4); // ซูมได้สูงสุด 4 เท่า
+                // ปรับความเร็วการซูมตรงนี้ (0.5 คือความหนืด)
+                let newWidth = currentWidth * (1 + (delta - 1) * 0.5); 
                 
-                // --- จุดสำคัญที่ต้องเพิ่มเพื่อให้เลื่อนได้ ---
-                wrapper.style.transform = `scale(${scale})`;
-                // สั่งให้กล่องหุ้ม ขยายขนาดตาม scale เพื่อให้เกิดการ Scroll
-                wrapper.style.width = (scale * 100) + "vw"; 
-                wrapper.style.height = (scale * 80) + "vh"; // ปรับตามความเหมาะสมของรูป
+                // ล็อคการซูม: ต่ำสุด 100% (เต็มจอ) สูงสุด 400% (4 เท่า)
+                if (newWidth >= 100 && newWidth <= 400) {
+                    currentWidth = newWidth;
+                    img.style.width = currentWidth + 'vw';
+                }
                 
                 lastDist = dist;
             }
         });
 
-        viewer.addEventListener('touchend', () => {
+        wrapper.addEventListener('touchend', () => {
             lastDist = 0;
         });
     });
