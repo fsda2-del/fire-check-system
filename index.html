@@ -36,13 +36,12 @@
         .floor-card.active { border-color: var(--red); background: #4A5568; }
 
         .map-wrapper { position: relative; background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); line-height: 0; display: inline-block; height: fit-content; }
-        #layout-img { max-width: 1000px; /* ในคอมให้ใหญ่สุดแค่ 1000px เหมือนเดิม */height: auto; cursor: crosshair; }
+        #layout-img { max-width: 1000px; height: auto; cursor: crosshair; }
 
         .pin { position: absolute; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer; z-index: 10; transition: scale 0.2s; }
         .pin:active { scale: 1.2; }
         .pin i { transform: rotate(45deg); font-size: 10px; color: white; }
         
-        /* แก้ไขสีหมุดค้างตรวจเป็นสีแดง */
         .pin.pending { background: var(--red); } 
         .pin.done { background: var(--green); }
         .pin.repair { background: var(--orange); }
@@ -65,62 +64,54 @@
         th { background: #f8f9fa; position: sticky; top: 0; }
         .admin-only { border: 2px dashed #D32F2F; padding: 10px; border-radius: 8px; margin-bottom: 15px; background: rgba(211, 47, 47, 0.05); }
 
-        /* สไตล์เพิ่มเติมสำหรับปุ่มเรียงลำดับ */
         .order-controls { display: flex; gap: 5px; margin-left: 10px; }
         .order-btn { background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; }
         .order-btn:hover { background: var(--red); }
-    /* --- ส่วนคำสั่งสำหรับมือถือ --- */
-@media (max-width: 768px) {
-    .viewer { padding: 0; overflow: auto; /* เปิดให้เลื่อนได้ */display: block;position: relative;}
-    .map-wrapper { display: inline-block; /* ให้กล่องโตตามขนาดรูปด้านใน */position: relative;min-width: 100%;}
-    #layout-img { width: 100vw; /* เริ่มต้นที่ความกว้างจอ */max-width: none; height: auto;display: block;}}
 
-    /* ล็อคขนาดหน้าต่างตรวจ (Modal) ไม่ให้ขยายตามรูป */
-    .modal {position: fixed;width: 100%;height: 100%;z-index: 9999;}}
+        @media (max-width: 768px) {
+            .viewer { padding: 0; overflow: auto; display: block; position: relative;}
+            .map-wrapper { display: inline-block; position: relative; min-width: 100%;}
+            #layout-img { width: 100vw; max-width: none; height: auto; display: block;}
+            .modal { position: fixed; width: 100%; height: 100%; z-index: 9999;}
+        }
     </style>
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const img = document.getElementById('layout-img');
-        const wrapper = document.querySelector('.map-wrapper');
-        let currentWidth = 100; // เริ่มต้นที่ 100% ของหน้าจอ
-        let lastDist = 0;
+        document.addEventListener('DOMContentLoaded', () => {
+            const img = document.getElementById('layout-img');
+            const wrapper = document.querySelector('.map-wrapper');
+            let currentWidth = 100; 
+            let lastDist = 0;
 
-        wrapper.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                lastDist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-            }
-        });
-
-        wrapper.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                // ไม่ต้องใช้ e.preventDefault() เพื่อให้เลื่อนนิ้วได้เป็นธรรมชาติ
-                const dist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                
-                const delta = dist / lastDist;
-                // ปรับความเร็วการซูมตรงนี้ (0.5 คือความหนืด)
-                let newWidth = currentWidth * (1 + (delta - 1) * 0.5); 
-                
-                // ล็อคการซูม: ต่ำสุด 100% (เต็มจอ) สูงสุด 400% (4 เท่า)
-                if (newWidth >= 100 && newWidth <= 400) {
-                    currentWidth = newWidth;
-                    img.style.width = currentWidth + 'vw';
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    lastDist = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
                 }
-                
-                lastDist = dist;
-            }
-        });
+            });
 
-        wrapper.addEventListener('touchend', () => {
-            lastDist = 0;
+            wrapper.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    const dist = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                    const delta = dist / lastDist;
+                    let newWidth = currentWidth * (1 + (delta - 1) * 0.5); 
+                    if (newWidth >= 100 && newWidth <= 400) {
+                        currentWidth = newWidth;
+                        img.style.width = currentWidth + 'vw';
+                    }
+                    lastDist = dist;
+                }
+            });
+
+            wrapper.addEventListener('touchend', () => {
+                lastDist = 0;
+            });
         });
-    });
-</script>
+    </script>
 </head>
 <body>
 
@@ -145,18 +136,14 @@
 <div class="main">
     <div class="sidebar-overlay" id="overlay" onclick="window.toggleMenu()"></div>
     <div class="sidebar" id="sidebar">
-        
         <div id="admin-tools" style="display:none;" class="admin-only">
             <p style="color:var(--red); font-weight:800; font-size:0.7rem; margin:0 0 10px 0; text-align:center;">ADMIN CONTROLS</p>
             <button class="btn btn-red" onclick="document.getElementById('f-up').click()"><i class="fas fa-plus"></i> เพิ่มแปลนชั้นใหม่</button>
             <input type="file" id="f-up" hidden accept="image/*" onchange="window.processImage(event)">
         </div>
-
         <div style="font-size: 0.75rem; color: #718096; font-weight: 600; margin-bottom: 5px;">เลือกรายการชั้น:</div>
         <div id="floor-list" style="flex:1; overflow-y:auto;"></div>
-        
         <button class="btn btn-blue" onclick="window.showReportModal()"><i class="fas fa-file-alt"></i> ดูรายงานสรุป</button>
-        
         <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
             <button onclick="window.askAdminPassword()" id="btn-admin-mode" class="btn btn-outline" style="color: #A0AEC0; border-color: #4A5568;"><i class="fas fa-lock"></i> Admin Login</button>
             <button onclick="window.setMode('user')" id="btn-user-mode" class="btn btn-red" style="display:none;"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ Admin</button>
@@ -249,21 +236,15 @@
         window.refreshUI(); 
     };
 
-    // ฟังก์ชันย้ายลำดับชั้น (Move Up/Down)
     window.moveFloor = (e, index, direction) => {
         e.stopPropagation();
         const targetIndex = index + direction;
         if (targetIndex < 0 || targetIndex >= window.floors.length) return;
-
-        // สลับตำแหน่งใน Array
         const temp = window.floors[index];
         window.floors[index] = window.floors[targetIndex];
         window.floors[targetIndex] = temp;
-
-        // อัปเดต currentFloor ให้ตามชั้นที่เลือกไป
         if (window.currentFloor === index) window.currentFloor = targetIndex;
         else if (window.currentFloor === targetIndex) window.currentFloor = index;
-
         window.saveToFirebase();
         window.refreshUI();
     };
@@ -334,7 +315,6 @@
 
     window.onMapClick = (e) => {
         if (window.mode !== 'admin' || window.currentFloor === null) return;
-        
         const r = e.target.getBoundingClientRect();
         const x = ((e.clientX - r.left) / r.width) * 100;
         const y = ((e.clientY - r.top) / r.height) * 100;
@@ -344,18 +324,14 @@
             <div style="display:grid; gap:10px;">
                 <div><label style="font-size:0.75rem; color:#666;">รหัสถัง (ID)</label>
                 <input type="text" id="p-id" placeholder="เช่น FE-001" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
-                
                 <div><label style="font-size:0.75rem; color:#666;">ประเภท</label>
                 <select id="p-type" class="btn btn-outline" style="margin:0;">
                     <option>ผงเคมีแห้ง (Dry Chemical)</option><option>CO2</option><option>Clean Agent</option><option>โฟม</option>
                 </select></div>
-
                 <div><label style="font-size:0.75rem; color:#666;">ขนาด</label>
                 <input type="text" id="p-size" placeholder="เช่น 10 ปอนด์" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
-
                 <div><label style="font-size:0.75rem; color:#666;">จุดติดตั้ง</label>
                 <input type="text" id="p-loc" placeholder="เช่น หน้าห้องฉุกเฉิน" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
-
                 <div><label style="font-size:0.75rem; color:#666;">วันหมดอายุ</label>
                 <input type="date" id="p-exp" class="btn btn-outline" style="margin:0;"></div>
             </div>
@@ -368,7 +344,6 @@
     window.addPin = (x, y) => {
         const id = document.getElementById('p-id').value;
         if(!id) return alert("กรุณาระบุ ID");
-        
         const pin = {
             id, 
             type: document.getElementById('p-type').value,
@@ -377,7 +352,6 @@
             exp: document.getElementById('p-exp').value,
             x, y, status: 'pending'
         };
-        
         if(!window.floors[window.currentFloor].pins) window.floors[window.currentFloor].pins = [];
         window.floors[window.currentFloor].pins.push(pin);
         window.saveToFirebase(); window.closeModal();
@@ -387,7 +361,6 @@
         const layer = document.getElementById('pin-layer'); 
         layer.innerHTML = '';
         if (window.currentFloor === null || !window.floors[window.currentFloor].pins) return;
-        
         window.floors[window.currentFloor].pins.forEach((p, i) => {
             const div = document.createElement('div');
             div.className = `pin ${p.status}`;
@@ -405,14 +378,36 @@
         if(window.mode === 'admin') {
             document.getElementById('modal-body').innerHTML = `
                 <h3><i class="fas fa-tools"></i> จัดการถัง: ${p.id}</h3>
-                <div style="font-size:0.85rem; background:#f8f9fa; padding:12px; border-radius:8px; line-height:1.6;">
-                    <b>ID:</b> ${p.id}<br>
-                    <b>ประเภท:</b> ${p.type}<br>
-                    <b>ขนาด:</b> ${p.size || '-'}<br>
-                    <b>ตำแหน่ง:</b> ${p.loc}<br>
-                    <b>วันหมดอายุ:</b> ${p.exp || '-'}
+                <div id="edit-form" style="display:none; grid-gap:10px; margin-bottom:15px;">
+                    <div><label style="font-size:0.75rem; color:#666;">รหัสถัง (ID)</label>
+                    <input type="text" id="edit-id" value="${p.id}" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
+                    <div><label style="font-size:0.75rem; color:#666;">ประเภท</label>
+                    <select id="edit-type" class="btn btn-outline" style="margin:0;">
+                        <option ${p.type.includes('ผงเคมี')?'selected':''}>ผงเคมีแห้ง (Dry Chemical)</option>
+                        <option ${p.type==='CO2'?'selected':''}>CO2</option>
+                        <option ${p.type==='Clean Agent'?'selected':''}>Clean Agent</option>
+                        <option ${p.type==='โฟม'?'selected':''}>โฟม</option>
+                    </select></div>
+                    <div><label style="font-size:0.75rem; color:#666;">ขนาด</label>
+                    <input type="text" id="edit-size" value="${p.size || ''}" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
+                    <div><label style="font-size:0.75rem; color:#666;">จุดติดตั้ง</label>
+                    <input type="text" id="edit-loc" value="${p.loc || ''}" class="btn btn-outline" style="text-align:left; color:black; margin:0;"></div>
+                    <div><label style="font-size:0.75rem; color:#666;">วันหมดอายุ</label>
+                    <input type="date" id="edit-exp" value="${p.exp || ''}" class="btn btn-outline" style="margin:0;"></div>
+                    <button class="btn btn-green" onclick="window.saveEditPin(${i})"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
+                    <button class="btn btn-outline" onclick="document.getElementById('edit-form').style.display='none'; document.getElementById('info-view').style.display='block';">ยกเลิก</button>
                 </div>
-                <button class="btn btn-red" onclick="window.deletePin(${i})"><i class="fas fa-trash"></i> ลบจุดติดตั้งนี้</button>
+                <div id="info-view">
+                    <div style="font-size:0.85rem; background:#f8f9fa; padding:12px; border-radius:8px; line-height:1.6; margin-bottom:10px;">
+                        <b>ID:</b> ${p.id}<br>
+                        <b>ประเภท:</b> ${p.type}<br>
+                        <b>ขนาด:</b> ${p.size || '-'}<br>
+                        <b>ตำแหน่ง:</b> ${p.loc}<br>
+                        <b>วันหมดอายุ:</b> ${p.exp || '-'}
+                    </div>
+                    <button class="btn btn-blue" onclick="document.getElementById('edit-form').style.display='grid'; document.getElementById('info-view').style.display='none';"><i class="fas fa-edit"></i> แก้ไขข้อมูล</button>
+                    <button class="btn btn-red" onclick="window.deletePin(${i})"><i class="fas fa-trash"></i> ลบจุดติดตั้งนี้</button>
+                </div>
                 <button class="btn btn-outline" onclick="window.closeModal()">ปิด</button>
             `;
         } else {
@@ -440,6 +435,21 @@
         document.getElementById('modal').style.display = 'flex';
     };
 
+    window.saveEditPin = (i) => {
+        const newId = document.getElementById('edit-id').value;
+        if(!newId) return alert("กรุณาระบุ ID");
+        const p = window.floors[window.currentFloor].pins[i];
+        p.id = newId;
+        p.type = document.getElementById('edit-type').value;
+        p.size = document.getElementById('edit-size').value;
+        p.loc = document.getElementById('edit-loc').value;
+        p.exp = document.getElementById('edit-exp').value;
+        window.saveToFirebase();
+        window.closeModal();
+        alert("แก้ไขข้อมูลเรียบร้อยแล้ว");
+        window.refreshUI();
+    };
+
     window.deletePin = (i) => {
         if(confirm("ยืนยันการลบจุดติดตั้งถังดับเพลิงนี้?")) {
             window.floors[window.currentFloor].pins.splice(i, 1);
@@ -451,23 +461,18 @@
     window.submitCheck = (i) => {
         const name = document.getElementById('ins-name').value;
         if(!name) return alert("กรุณาระบุชื่อผู้ตรวจ");
-        
         let isFail = false;
         let incomplete = false;
-
         checklistItems.forEach((_, idx) => {
             const selected = document.querySelector(`input[name="r${idx}"]:checked`);
             if(!selected) incomplete = true;
             else if(selected.value === 'no') isFail = true;
         });
-
         if(incomplete) return alert("กรุณาทำรายการตรวจให้ครบทุกข้อ");
-        
         const p = window.floors[window.currentFloor].pins[i];
         p.status = isFail ? 'repair' : 'done';
         p.by = name;
         p.date = new Date().toLocaleString('th-TH');
-        
         window.saveToFirebase(); 
         window.closeModal();
         alert("บันทึกข้อมูลเรียบร้อยแล้ว");
@@ -477,7 +482,6 @@
         if(window.currentFloor === null) return alert("กรุณาเลือกชั้นที่ต้องการดูรายงาน");
         const floor = window.floors[window.currentFloor];
         const pins = floor.pins || [];
-        
         document.getElementById('modal-body').innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h3 style="margin:0;">รายงานสถานะ: ${floor.name}</h3>
@@ -526,9 +530,7 @@
     window.exportToExcel = () => {
         const floorName = window.floors[window.currentFloor].name;
         const pins = window.floors[window.currentFloor].pins || [];
-        
         if (pins.length === 0) return alert("ไม่มีข้อมูลสำหรับการ Export");
-
         const excelData = pins.map(p => ({
             "รหัสถัง": p.id,
             "ประเภท": p.type,
@@ -539,11 +541,9 @@
             "ผู้ตรวจ": p.by || '-',
             "วันที่ตรวจ": p.date || '-'
         }));
-
         const worksheet = XLSX.utils.json_to_sheet(excelData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-        
         XLSX.writeFile(workbook, `รายงานตรวจถัง_${floorName}_${new Date().toLocaleDateString('th-TH')}.xlsx`);
     };
 
@@ -572,7 +572,6 @@
     };
 
     window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
-    
     setTimeout(() => { if(!window.currentFloor) window.toggleMenu(); }, 500);
 
 </script>
